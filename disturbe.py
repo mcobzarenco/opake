@@ -31,7 +31,7 @@ def log_stderr(msg=''):
 
 
 def log_keyvalue(key, value, file=sys.stderr):
-    print('{0:<24}: {1:<50}'.format(key, value), file=file)
+    print('{0:<26}: {1:<50}'.format(key, value), file=file)
 
 
 def credentials_to_secret_key(passwd, email):
@@ -124,18 +124,27 @@ if __name__ == '__main__':
     log_keyvalue('Password', args.passwd)
     log_keyvalue('Public Key', user_skey.public_key.encode(Base64Encoder))
 
-    recipient_pkeys = (PublicKey(key, Base64Encoder) for key in (args.e or []))
-    for recipient_pkey in recipient_pkeys:
-        log_stderr()
-        log_keyvalue("Recipient (public key)",
-                     recipient_pkey.encode(Base64Encoder))
+    if args.e is not None:
+        print(args.e)
+        recipient_pkeys = (PublicKey(key, Base64Encoder)
+                           for key in (args.e or []))
         stream = sys.stdin if args.f is None else open(args.f, 'rb')
-        enc = encrypt(user_skey, recipient_pkey, stream.read())
-        sys.stdout.write(json.dumps(enc) + '\n')
+        log_stderr('\n*** Message ***')
+        message = stream.read()
+        log_keyvalue('Length message (bytes)', len(message))
+
+        for i, recipient_pkey in enumerate(recipient_pkeys):
+            log_keyvalue("Recipient %d (public key)" % (i + 1),
+                         recipient_pkey.encode(Base64Encoder))
+            enc = encrypt(user_skey, recipient_pkey, message)
+            sys.stdout.write(json.dumps(enc) + '\n')
 
     if args.d:
         stream = sys.stdin if args.f is None else open(args.f, 'rb')
-        plain = decrypt(user_skey, stream.read())
+        log_stderr('\n*** Message ***')
+        message = stream.read()
+
+        plain = decrypt(user_skey, message)
         log_stderr()
         log_keyvalue('Sender (public key)',
                      plain['sender'].encode(Base64Encoder))
