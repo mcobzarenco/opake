@@ -19,7 +19,7 @@ DEFAULT_EMAIL = 'test@test.io'
 SCRYPT_N = 2 ** 14
 SCRYPT_R = 8
 SCRYPT_P = 1
-SCRYPT_BUFLEN = 32
+SCRYPT_L = 32
 
 
 # def log_stdout(msg=''):
@@ -38,7 +38,7 @@ def credentials_to_secret_key(email, password):
     passwd_hash = sha512(password).digest()
     scrypt_hash = scrypt.hash(
         passwd_hash, email, N=SCRYPT_N, r=SCRYPT_R,
-        p=SCRYPT_P, buflen=SCRYPT_BUFLEN)
+        p=SCRYPT_P, buflen=SCRYPT_L)
     return PrivateKey(scrypt_hash)
 
 
