@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function, division
 import argparse
-from base64 import urlsafe_b64decode as b64decode, \
-    urlsafe_b64encode as b64encode
 from hashlib import sha512
 import json
 import sys
