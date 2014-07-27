@@ -13,10 +13,10 @@ from nacl.secret import SecretBox
 import scrypt
 
 
-DEFAULT_PASSWD = 'anaaremere'
+DEFAULT_PASSWORD = 'anaaremere'
 DEFAULT_EMAIL = 'test@test.io'
 
-SCRYPT_N = 2 ** 17
+SCRYPT_N = 2 ** 14
 SCRYPT_R = 8
 SCRYPT_P = 1
 SCRYPT_BUFLEN = 32
@@ -34,8 +34,8 @@ def log_keyvalue(key, value, file=sys.stderr):
     print('{0:<26}: {1:<50}'.format(key, value), file=file)
 
 
-def credentials_to_secret_key(passwd, email):
-    passwd_hash = sha512(passwd).digest()
+def credentials_to_secret_key(email, password):
+    passwd_hash = sha512(password).digest()
     scrypt_hash = scrypt.hash(
         passwd_hash, email, N=SCRYPT_N, r=SCRYPT_R,
         p=SCRYPT_P, buflen=SCRYPT_BUFLEN)
@@ -109,9 +109,9 @@ if __name__ == '__main__':
     _arg('--email', type=str, action='store', metavar='EMAIL',
          default=DEFAULT_EMAIL, help='Email address (default=%s for demo)' %
          DEFAULT_EMAIL)
-    _arg('--passwd', type=str, action='store', metavar='PASSWD',
-         default=DEFAULT_PASSWD, help='Password (default=%s for demo)' %
-         DEFAULT_PASSWD)
+    _arg('--password', type=str, action='store', metavar='PASS',
+         default=DEFAULT_PASSWORD, help='Password (default=%s for demo)' %
+         DEFAULT_PASSWORD)
     _arg('-d', action='store_true', help='decrypt the file')
     _arg('-e', type=str, action='store', nargs='+',
          help='encrypt the file for a curve25519 public key (base64)')
@@ -119,9 +119,11 @@ if __name__ == '__main__':
          help='File to encrypt/decrypt. If not specified stdin is used')
     args = parser.parse_args()
 
-    user_skey = credentials_to_secret_key(args.email, args.passwd)
+    user_skey = credentials_to_secret_key(
+        email=args.email, password=args.password)
     log_keyvalue('Email', args.email)
-    log_keyvalue('Password', args.passwd)
+    log_keyvalue('Password', args.password)
+    log_keyvalue('Private Key', user_skey.encode(Base64Encoder))
     log_keyvalue('Public Key', user_skey.public_key.encode(Base64Encoder))
 
     if args.e is not None:
