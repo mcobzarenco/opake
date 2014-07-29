@@ -1,0 +1,8 @@
+input.form-control[readonly] {
+  cursor: auto;
+  background-color: #aaa
+}
+
+.text-monospace {
+  font-family: monospace;
+}
