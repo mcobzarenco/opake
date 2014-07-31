@@ -1,0 +1,28 @@
+{
+    "name": "curvech.at",
+    "version": "0.0.1",
+    "homepage": "https://github.com/mcobzaenco/disturbe",
+    "authors": [
+        "Marius Cobzarenco <marius@reinfer.io>"
+    ],
+    "description": "zero knowledge messaging",
+    "private": false,
+    "ignore": [
+        "**/.*",
+        "node_modules",
+        "bower_components",
+        "test",
+        "tests"
+    ],
+    "dependencies": {
+        "bootstrap": "reinferio/bootstrap#master",
+        "bootstrap-select": "latest",
+        "github-fork-ribbon-css": "latest",
+        "font-awesome": "latest",
+        "jquery": "latest",
+        "moment": "latest",
+        "nprogress": "latest",
+        "react": "latest",
+        "zxcvbn": "latest"
+    }
+}
