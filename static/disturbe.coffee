@@ -33,6 +33,8 @@ SCRYPT_R = 8
 SCRYPT_P = 1
 SCRYPT_L = 32
 
+MINIMUM_PASSWORD_ENTROPY_BITS = 5
+
 
 nacl = nacl_factory.instantiate()
 scrypt = scrypt_module_factory()
@@ -174,38 +176,130 @@ DisturbeApp = React.createClass
     userKeys = nacl.crypto_box_keypair_from_raw_sk privateKey
     this.setState userKeys: userKeys
     #retrieveUserData userKeys, this.setUserData, (error) -> alert error
-    sendMessage userKeys
 
   setUserData: (userData) ->
     console.log userData
 
+  onLogin: (event) ->
+    console.log 'login'
+    sendMessage this.state.userKeys
+
   render: ->
     div null,
+      h1 className: "text-monospace large-bottom", "curvech.at"
       if this.state.userKeys?
-        KeyCabinet userKeys: this.state.userKeys
+        div null,
+          div className: "row",
+            div className: "col-md-12 large-bottom",
+              h3 className: "text-monospace", "Keys"
+              p className: "text-monospace",
+              "Your keys. Anyone who has your public key can send
+              messages that only you can decrypt."
+              p className: "text-monospace",
+                "Spread your public key wide. The secret key you
+                should keep, um, secret."
+          KeyCabinet userKeys: this.state.userKeys
+          div className: 'row',
+            div className: 'col-md-12 ',
+              button className:'btn btn-success pull-right',
+              onClick:this.onLogin, 'Sign in with Public Key'
       else
         GeneratePrivateKey onGenerateKey: this.setPrivateKey
 
 
 KeyCabinet = React.createClass
   render: ->
-    div className: 'row',
-      div className: 'col-md-12',
-        form className: 'form-horizontal',
-          InputField
-            type: 'text'
-            label: span className: 'text-monospace', 'Public Key'
-            inputClass: 'text-monospace'
-            value: b64encode this.props.userKeys.boxPk
-          InputField
-            type: 'text'
-            label: span className: 'text-monospace', 'Secret Key'
-            inputClass: 'text-monospace'
-            value: b64encode this.props.userKeys.boxSk
+    form className: 'form-horizontal',
+        PublicKeyField publicKey: this.props.userKeys.boxPk
+        SecretKeyField secretKey: this.props.userKeys.boxSk
+
+
+PublicKeyField = React.createClass
+  getInitialState: () -> shown: false
+
+  onClipboard: (event) ->
+    event.preventDefault()
+
+  onTweet: (event) ->
+    event.preventDefault()
+    tweet_text = "cryptch.at is zero knowledge messaging with end to end " +
+    "encryption. My public key is #{b64encode this.props.publicKey}"
+    window.open("https://twitter.com/intent/tweet?text=#{tweet_text}")
+
+  render: ->
+    inputProps =
+      type: 'text'
+      readOnly: true
+      className: 'form-control text-monospace'
+      placeholder: ''
+      value: b64encode this.props.publicKey
+      style: {backgroundColor: 'white'}
+
+    div className: 'form-group',
+      div className: 'col-md-12', style:{display:'inline-block'},
+        div className: 'input-group margin-bottom-lg',
+          span className: 'input-group-addon',
+            span style: {width: '12em', display: 'inline-block'},
+            span className: 'text-monospace', 'Public Key'
+          input inputProps
+          span className: 'input-group-btn',
+            button
+              className: 'btn btn-default text-monospace',
+              onClick: this.onClipboard,
+              i className: 'fa fa-chain fa-lg'
+          span className: 'input-group-btn',
+            button
+              className: 'btn btn-default text-monospace',
+              onClick: this.onTweet,
+              i className: 'fa fa-twitter fa-lg'
+
+
+SecretKeyField = React.createClass
+  getInitialState: () -> shown: false
+
+  onShow: (event) ->
+    event.preventDefault()
+    newState = shown: not this.state.shown
+    if newState.shown
+      hideKey = (() -> this.setState shown: false).bind(this)
+      newState.timeoutId = window.setTimeout hideKey, 5000
+    else if this.state.timeoutId?
+      window.clearTimeout this.state.timeoutId
+    this.setState newState
+
+  render: ->
+    classNames = 'form-control text-monospace'
+    if this.state.shown
+      value = b64encode this.props.secretKey
+    else
+      classNames += ' text-muted'
+      value = '<< Hidden >>'
+
+    inputProps =
+      className: classNames
+      type: 'text'
+      readOnly: true
+      placeholder: ''
+      value: value
+      style: {backgroundColor: 'white'}
+
+    div className: 'form-group',
+      div className: 'col-md-12', style:{display:'inline-block'},
+        div className: 'input-group margin-bottom-lg',
+          span className: 'input-group-addon',
+            span style: {width: '12em', display: 'inline-block'},
+            span className: 'text-monospace', 'Secret Key'
+          input inputProps
+          span className: 'input-group-btn',
+            button
+              className: 'btn btn-default text-monospace',
+              onClick: this.onShow,
+              if this.state.shown then 'Hide' else 'Show'
 
 
 GeneratePrivateKey = React.createClass
   getInitialState: ->
+    validNewKey: false
     email: ''
     password: ''
 
@@ -216,32 +310,110 @@ GeneratePrivateKey = React.createClass
     this.props.onGenerateKey? private_key
 
   render: ->
+    console.log this.state
+    newIdentityButtonProps =
+      className: 'btn btn-success pull-right text-monospace'
+      onClick: this.generateKey
+    if not this.state.validNewKey
+      newIdentityButtonProps.disabled = '1'
+
     div className: 'row',
       div className: 'col-md-12',
         form className: 'form-horizontal',
-          InputField
-            type: 'text'
-            label: span className: 'text-monospace', 'Email address'
-            inputClass: 'text-monospace'
-            onChange: ((email) -> this.setState email: email).bind this
-          InputField
-            type: 'password',
-            label: span className: 'text-monospace', 'Password'
-            inputClass: 'text-monospace'
-            onChange: ((password) -> this.setState password: password).bind this
-      div className: 'form-group',
-        div className: 'col-md-12 ',
-          span null,
-            button className: 'btn btn-success pull-right',
-            onClick: this.generateKey, 'Generate Key'
+          div className: "row",
+            div className: "col-md-12",
+              h3 className: "text-monospace", "Generate keys"
+              p className: "text-monospace",
+              "Your email and password are used to generate a " +
+              "unique pair of keys."
+              p className: "text-monospace",
+              "The credentials do not leave your device."
+          div style: {marginTop: "1em"},
+            InputField
+              type: 'text'
+              label: span className: 'text-monospace', 'Email address'
+              inputClass: 'text-monospace'
+              onChange: ((email) -> this.setState email: email).bind this
+            InputField
+              type: 'password',
+              label: span className: 'text-monospace', 'Password'
+              onChange: ((password) ->
+                this.setState password: password).bind this
+          div className: 'form-group',
+            div className: 'col-md-12 ',
+              button className: 'btn btn-default pull-right text-monospace',
+              onClick: this.generateKey, 'Generate Keys'
+          div className: "row",
+            div className: "col-md-12",
+              h3 className: 'text-monospace',
+              "New to curvech.at? Or just want a new identity?"
+              p className: 'text-monospace',
+                "Your password together with your email are used to
+                 generate a unique pair of keys. "
+              p className: 'text-monospace',
+                "This happens in your browser, but it is important
+                that it cannot be brute forced easily. Your password
+                needs to have high entropy to generate high quality
+                keys."
+          VerifyPassword {password: this.state.password,
+          onUpdate: ((valid) -> this.setState validNewKey: valid).bind(this)}
+          div className: 'form-group',
+            div className: 'col-md-12 ',
+              button newIdentityButtonProps, 'Generate New Keys'
 
 
-  # email = 'marius@gmail.com'
-    # password = 'anaaremere'
-    # private_key = credentialsToSecretKey(email, password)
+VerifyPassword = React.createClass
+  getInitialState: () ->
+    verifyPassword: ''
 
-    # div null,
-    #   div null, 'CollectEmail: ' + b64encode(private_key)
+  componentDidUpdate: () ->
+    console.log this.validPassword
+    this.props.onUpdate this.validPassword
+
+  shouldComponentUpdate: (nextProps, nextState) ->
+    not(nextState.verifyPassword == this.state.verifyPassword and \
+      nextProps.password == this.props.password)
+
+  render: () ->
+    passwordStats = zxcvbn this.props.password
+
+    this.validPassword = true
+    newKeyMessageClass = ''
+    newKeyMessage = ''
+    if passwordStats.entropy < MINIMUM_PASSWORD_ENTROPY_BITS
+      this.validPassword = false
+      newKeyMessage = "Your password is not strong enough, it must to have at" +
+      " least #{MINIMUM_PASSWORD_ENTROPY_BITS} bits of entropy."
+      newKeyMessageClass = "text-danger"
+    else if passwordStats.entropy < 110
+      newKeyMessageClass = "text-warning"
+    else
+      newKeyMessageClass = "text-success"
+    entropyClass = newKeyMessageClass + " password-entropy"
+
+    if this.props.password != this.state.verifyPassword
+      if newKeyMessage == ''
+        this.validPassword = false
+        newKeyMessageClass = "text-danger"
+        newKeyMessage = 'Passwords do not match.'
+    else if newKeyMessage == ''
+      newKeyMessage = 'Everything is OK'
+
+    div null,
+      div className: "row",
+        div className: "col-md-12",
+          div className: 'text-monospace password-entropy',
+          style: {display:'inline-block'}, "Entropy: "
+            span className: entropyClass, "#{passwordStats.entropy} bits"
+      div style: {marginBottom: "1em"},
+        InputField
+          type: 'password',
+          label: span className: 'text-monospace', 'Verify Password'
+          onChange: ((password) ->
+            this.setState verifyPassword: password).bind this
+      div className: 'row',
+        div className: 'col-md-12 text-monospace large-bottom',
+          p className: newKeyMessageClass, newKeyMessage
 
 
 InputField = React.createClass
@@ -259,13 +431,12 @@ InputField = React.createClass
       inputProps.className += ' ' + this.props.inputClass
 
     div className: 'form-group',
-      div className: 'col-md-12',
+      div className: 'col-md-12', style:{display:'inline-block'},
         div className: 'input-group margin-bottom-lg',
           span className: 'input-group-addon',
             span style: {width: '12em', display: 'inline-block'},
             this.props.label
-          div null,
-            input inputProps
+          input inputProps
 
 
 React.renderComponent DisturbeApp(), document.getElementById('app')

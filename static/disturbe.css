@@ -6,3 +6,20 @@ input.form-control[readonly] {
 .text-monospace {
   font-family: monospace;
 }
+
+input-group-btn {
+  -moz-outline-style: none;
+}
+
+.password-entropy {
+  font-size: 1.5em;
+  margin-bottom: 1em;
+}
+
+.large-bottom {
+  margin-bottom: 1em;
+}
+
+.github-fork-ribbon {
+  background-color: #444;
+}
