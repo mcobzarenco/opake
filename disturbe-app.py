@@ -10,6 +10,7 @@ import re
 import sys
 
 import jsonschema
+import redis
 import riak
 import nacl.utils
 from nacl.encoding import URLSafeBase64Encoder as Base64Encoder
@@ -26,8 +27,12 @@ HTTP_BAD_REQUEST = 400
 HTTP_INTERNAL_SERVER_ERROR = 500
 
 DEFAULT_BIND = '127.0.0.1:8080'
+DEFAULT_REDIS = '127.0.0.1:6379'
 DEFAULT_RIAK = ['127.0.0.1:8087']
 DEFAULT_WORKERS = 4
+
+DEFAULT_COOKIE_PREFIX = 'cookie:'
+DEFAULT_MINUTE_KEY_EXPIRY_SECS = 30
 
 DISTURBE_INDEX = 'disturbe.html'
 
@@ -42,12 +47,12 @@ log = logging.getLogger()
 log.setLevel(logging.DEBUG)
 
 
-# TODO: (mcobzarenco) replace with redis
-minute_keys = {}
-
-
 class InvalidClientRequest(Exception):
     """ Signals an invalid client request """
+
+
+class MissingCookie(Exception):
+    """ Signals a missing cookie in Redis """
 
 
 class BottlePlugin(object):
@@ -108,6 +113,24 @@ def expect_json_request(request, schema=None):
             'content-type was "%s", it should be "application/json"' %
             request.content_type)
     return parse_and_verify_json(request._get_body_string(), schema)
+
+
+def redis_set_cookie(redis_client, cookie, minute_key,
+                     expiry_secs=DEFAULT_MINUTE_KEY_EXPIRY_SECS):
+    cookie_with_prefix = DEFAULT_COOKIE_PREFIX + cookie
+    redis_client.set(cookie_with_prefix, minute_key, ex=expiry_secs)
+
+
+def redis_get_cookie(redis_client, cookie):
+    cookie_with_prefix = DEFAULT_COOKIE_PREFIX + cookie
+    minute_key = redis_client.getset(cookie_with_prefix, '')
+    if minute_key is None:
+        raise MissingCookie('No such cookie.')
+    elif minute_key == '':
+        redis_client.delete(cookie_with_prefix)
+        raise MissingCookie('No such cookie.')
+    redis_client.delete(cookie_with_prefix)
+    return minute_key
 
 
 #######                           Routes                               #######
@@ -233,13 +256,13 @@ def check_exact_length(value, value_name, expected_len):
                                        (value_name, expected_len))
 
 @route('/')
-@route('/<filepath:path>')
+@route('/static/<filepath:path>')
 def server_static(filepath=DISTURBE_INDEX):
     return static_file(filepath, root='static/')
 
 
 @route('/handshake/hello', method='POST')
-def handshake_hello(private_key):
+def handshake_hello(private_key, redis_client):
     try:
         request = expect_json_request(bottle.request, HELLO_SCHEMA)
         client_transient_pkey = PublicKey(
@@ -260,8 +283,7 @@ def handshake_hello(private_key):
         cookie_sbox = SecretBox(symmetric_key)
         cookie = cookie_sbox.encrypt(
             cookie_plain, cookie_nonce, encoder=Base64Encoder)
-        minute_keys[cookie] = symmetric_key
-        # print(minute_keys)
+        redis_set_cookie(redis_client, cookie, symmetric_key)
 
         cookie_box = Box(private_key, client_transient_pkey)
         cookie_box_nonce = nacl.utils.random(Box.NONCE_SIZE)
@@ -290,15 +312,15 @@ def handshake_hello(private_key):
 
 
 @route('/handshake/initiate', method='POST')
-def handshake_initiate(private_key):
+def handshake_initiate(private_key, redis_client):
     try:
         request = expect_json_request(bottle.request, INITIATE_SCHEMA)
 
-        symmetric_key = minute_keys[request[INITIATE_COOKIE_FIELD]]
+        symmetric_key = redis_get_cookie(
+            redis_client, request[INITIATE_COOKIE_FIELD])
         cookie_sbox = SecretBox(symmetric_key)
         cookie = cookie_sbox.decrypt(
             str(request[INITIATE_COOKIE_FIELD]), encoder=Base64Encoder)
-        del minute_keys[request[INITIATE_COOKIE_FIELD]]
 
         if len(cookie) != 2 * CURVE25519_KEY_BYTES:
             bottle.response.status = HTTP_INTERNAL_SERVER_ERROR
@@ -323,7 +345,8 @@ def handshake_initiate(private_key):
             raise InvalidClientRequest(
                 'Initiate: non matching transient public keys.')
 
-        resp = 'I believe you are %s' % client_pkey.encode(Base64Encoder)
+        resp = 'I believe you are {} and you want {}'.format(
+            client_pkey.encode(Base64Encoder), vouch[VOUCH_MESSAGE_FIELD])
         print(resp)
         response_nonce = nacl.utils.random(Box.NONCE_SIZE)
         response_box = Box(transient_skey, client_transient_pkey)
@@ -335,6 +358,10 @@ def handshake_initiate(private_key):
         bottle.response.status = HTTP_BAD_REQUEST
         return {'error': str(e)}
     except InvalidClientRequest as e:
+        log.exception(e)
+        bottle.response.status = HTTP_BAD_REQUEST
+        return {'error': str(e)}
+    except MissingCookie as e:
         log.exception(e)
         bottle.response.status = HTTP_BAD_REQUEST
         return {'error': str(e)}
@@ -363,6 +390,9 @@ if __name__ == '__main__' or True:
     _arg('--bind', type=str, default=DEFAULT_BIND, action='store',
          metavar='host:port', help='where to bind - host:port - default: %s'
          % DEFAULT_BIND)
+    _arg('--redis', type=str, default=DEFAULT_REDIS, action='store',
+         metavar='host:port', help='Redis endpoint used to store minute keys '
+          'specified as host:port - default: %s' % DEFAULT_REDIS)
     _arg('--riak', type=str, default=DEFAULT_RIAK, action='store',
          metavar='host:port', nargs='*', help='what Riak nodes to use -'
          ' host:port - can be used multiple times - default: %s'
@@ -377,6 +407,8 @@ if __name__ == '__main__' or True:
 
     bind = parse_hostport(args.bind)
     app = bottle.app()
+    app.install(BottlePlugin('redis_client', 'redis_client',
+                             redis.StrictRedis(**parse_hostport(args.redis))))
 
     riak_nodes = []
     for hostport in args.riak:
