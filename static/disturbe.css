@@ -7,7 +7,7 @@ input.form-control[readonly] {
   font-family: monospace;
 }
 
-input-group-btn {
+.input-group-btn {
   -moz-outline-style: none;
 }
 
@@ -16,10 +16,42 @@ input-group-btn {
   margin-bottom: 1em;
 }
 
+.tag {
+  font-family: monospace;
+}
+
+.label {
+  border-radius: 0em;
+}
+
 .large-bottom {
   margin-bottom: 1em;
 }
 
 .github-fork-ribbon {
   background-color: #444;
+}
+
+.user-profile-item {
+  margin-bottom: .1em;
+  margin-left: .7em;
+  display: block;
+}
+
+.user-profile-item > i {
+  margin-right: .2em;
+}
+
+.bootstrap-tagsinput {
+  width: 100%;
+  border-radius: 0em;
+}
+
+.bootstrap-tagsinput > input {
+  width: 10em;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 10em;
 }

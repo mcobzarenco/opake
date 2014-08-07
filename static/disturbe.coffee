@@ -1,5 +1,5 @@
 {a, br, button, div, form, hr, h1, h2, h3, h4, h5, h6, i, input,
-  label, li, p, option, select, span, strong, ul} = React.DOM
+  label, li, p, option, select, span, strong, textarea, ul} = React.DOM
 
 
 ### Json CurveCP Protocol Constants ###
@@ -24,9 +24,23 @@ VOUCH_DOMAIN_NAME_FIELD = 'domain_name'
 VOUCH_MESSAGE_FIELD = 'message'
 
 
-### Crypto Constants ###
+### Encryption Constants ###
 
-BOX_NONCE_BYTES = 24
+CIPHER_VERSION = 1
+
+CIPHER_VERSION_FIELD = 'version'
+CIPHER_TRANSIENT_PKEY_FIELD = 'transient_pkey'
+CIPHER_DECRYPT_INFO_FIELD = 'decrypt_info'
+CIPHER_MESSAGE_FIELD = 'message'
+
+DECRYPT_INFO_SENDER_FIELD = 'sender'
+DECRYPT_INFO_MESSAGE_INFO_FIELD = 'message_info_box'
+
+MESSAGE_INFO_KEY_FIELD = 'message_key'
+MESSAGE_INFO_NONCE_FIELD = 'message_nonce'
+
+
+### Key Derivation Constants ###
 
 SCRYPT_N = Math.pow(2, 14)
 SCRYPT_R = 8
@@ -36,9 +50,15 @@ SCRYPT_L = 32
 MINIMUM_PASSWORD_ENTROPY_BITS = 5
 
 
+BOX_NONCE_BYTES = 24
+KEY_BASE64_BYTES = 44
+
+
 nacl = nacl_factory.instantiate()
 scrypt = scrypt_module_factory()
 {encode_utf8, decode_utf8} = nacl
+
+$.fn.editable.defaults.mode = 'inline';
 
 
 credentialsToSecretKey = (email, password) ->
@@ -61,6 +81,16 @@ b64encode = (arr) ->
 
 b64decode = (base64Str) ->
   base64DecToArr base64Str.replace(/-/g, '+').replace(/_/g, '/')
+
+
+toHex = (arr) ->
+  hexEncode = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+  'A', 'B', 'C', 'D', 'E', 'F'];
+  buf = ''
+  for elem in arr
+    buf += hexEncode[(elem & 0xf0) >> 4]
+    buf += hexEncode[(elem & 0x0f)]
+  buf
 
 
 sendHello = (transientKeys, success, error) ->
@@ -121,90 +151,331 @@ sendInitiate = (userKeys, transientKeys, serverTPKey,
     data: JSON.stringify payload
     contentType: 'application/json'
     dataType: 'json'
-    error: (xhr) -> error xhr
+    error: error
     success: (data, status, xhr) ->
       response_box = b64decode data.response
       response_box_nonce = response_box.subarray 0, BOX_NONCE_BYTES
       response_box_cipher = response_box.subarray BOX_NONCE_BYTES
       response = decode_utf8 nacl.crypto_box_open(
-        response_box_cipher, response_box_nonce, serverTPKey, transientKeys.boxSk)
+        response_box_cipher, response_box_nonce,
+        serverTPKey, transientKeys.boxSk)
       success response
 
 
-sendMessage = (userKeys, message) ->
+sendMessage = (userKeys, message, success, error) ->
   transientKeys = nacl.crypto_box_keypair()
   serverPublicKey = b64decode SERVER_PUBLIC_KEY
   sendHello transientKeys,
     (serverTPKey, cookie) ->
-      console.log serverTPKey
-      console.log cookie
-      message = {'alabama': 123}
-      sendInitiate(userKeys, transientKeys, serverTPKey, cookie, message,
-        (response) -> console.log response
-        (xhr) -> alert xhr.responseText
-      )
-    (xhr) -> alert xhr.responseText
+      sendInitiate(userKeys, transientKeys, serverTPKey,
+        cookie, message, success, error)
+    error
 
 
-retrieveUserData = (userKeys, success, error) ->
+validPublicKey = (key) ->
+  valid = false
+  try
+    if typeof key == 'string'
+      key = b64decode(key)
+    if key.length == nacl.crypto_box_PUBLICKEYBYTES
+      valid = true
+  catch error
+    valid = false
+  valid
+
+
+encryptMessage = (senderKeys, recipientPublicKeys, message) ->
+  secretToRecipient = (transientKeys, senderKeys,
+    recipientPublicKey, messageInfo) ->
+    nonce = nacl.crypto_box_random_nonce()
+    messageInfoBox = nacl.crypto_box(
+      messageInfo, nonce, recipientPublicKey, senderKeys.boxSk)
+
+    decryptInfo = {}
+    decryptInfo[DECRYPT_INFO_SENDER_FIELD] = b64encode senderKeys.boxPk
+    decryptInfo[DECRYPT_INFO_MESSAGE_INFO_FIELD] = b64encode messageInfoBox
+    decryptInfo = encode_utf8 JSON.stringify decryptInfo
+    decryptInfoBox = nacl.crypto_box(
+      decryptInfo, nonce, recipientPublicKey, transientKeys.boxSk)
+    {nonce, decryptInfoBox}
+
   transientKeys = nacl.crypto_box_keypair()
-  serverPublicKey = b64decode SERVER_PUBLIC_KEY
+  if typeof message == 'string'
+    message = encode_utf8 message
 
-  zeros = new Uint8Array(HELLO_PADDING_BYTES)
-  nonce = nacl.crypto_box_random_nonce()
-  zerosBox = nacl.crypto_box zeros, nonce, serverPublicKey, transientKeys.boxSk
-  noncedZerosBox = concatBuffers nonce, zerosBox
-  $.ajax
-    type: 'POST'
-    url: HELLO_URL
-    data: JSON.stringify
-      client_tpkey: b64encode transientKeys.boxPk
-      padding: b64encode Uint8Array(HELLO_PADDING_BYTES)
-      zeros_box: b64encode noncedZerosBox
-    contentType: 'application/json'
-    dataType: 'json'
-    error: -> alert(
-      'Auch! The source cannot be created at the moment. ' +
-      'Please try again or contact us at support@reinfer.io')
-    success: (data, status, xhr) -> success(data)
+  messageHash = nacl.crypto_hash message
+  messageNonce = nacl.crypto_secretbox_random_nonce()
+  messageKey = nacl.random_bytes nacl.crypto_secretbox_KEYBYTES
+  messageBox = nacl.crypto_secretbox message, messageNonce, messageKey
+
+  messageInfo = {}
+  messageInfo[MESSAGE_INFO_KEY_FIELD] = b64encode messageKey
+  messageInfo[MESSAGE_INFO_NONCE_FIELD] = b64encode messageNonce
+  messageInfo = encode_utf8 JSON.stringify messageInfo
+
+  cipher = {}
+  cipher[CIPHER_VERSION_FIELD] = CIPHER_VERSION
+  cipher[CIPHER_TRANSIENT_PKEY_FIELD] = b64encode transientKeys.boxPk
+  cipher[CIPHER_MESSAGE_FIELD] = b64encode messageBox
+  decryptInfo = {}
+  cipher[CIPHER_DECRYPT_INFO_FIELD] = decryptInfo
+  for recipientPublicKey in recipientPublicKeys
+    if recipientPublicKey.length != nacl.crypto_box_PUBLICKEYBYTES
+      throw new Error(
+        "#{b64encode recipientPublicKey} is not valid public key")
+    {nonce, decryptInfoBox} = secretToRecipient(
+      transientKeys, senderKeys, recipientPublicKey, messageInfo)
+    decryptInfo[b64encode(nonce)] = b64encode decryptInfoBox
+  JSON.stringify cipher
+
+
+decryptMessage = (userKeys, cipherText) ->
+  GENERIC_ERROR = 'Could not decrypt message.'
+  cipher = JSON.parse cipherText
+
+  transientPublicKey = b64decode cipher[CIPHER_TRANSIENT_PKEY_FIELD]
+  decryptInfo = null
+  decryptInfoNonce = null
+  for nonceBase64, box of cipher[CIPHER_DECRYPT_INFO_FIELD]
+    try
+      decryptInfoNonce = b64decode(nonceBase64)
+      decryptInfo = nacl.crypto_box_open(
+        b64decode(box), decryptInfoNonce, transientPublicKey, userKeys.boxSk)
+      break
+    catch error
+      # Could not decrypt it, try the next one
+  if not (decryptInfo? and decryptInfoNonce?)
+    throw GENERIC_ERROR
+
+  decryptInfo = JSON.parse decode_utf8 decryptInfo
+  senderPublicKey = b64decode decryptInfo[DECRYPT_INFO_SENDER_FIELD]
+
+  messageInfoBox = b64decode decryptInfo[DECRYPT_INFO_MESSAGE_INFO_FIELD]
+  messageInfo = nacl.crypto_box_open(
+      messageInfoBox, decryptInfoNonce, senderPublicKey, userKeys.boxSk)
+  messageInfo = JSON.parse decode_utf8 messageInfo
+  console.log messageInfo
+  messageKey = b64decode messageInfo[MESSAGE_INFO_KEY_FIELD]
+  messageNonce = b64decode messageInfo[MESSAGE_INFO_NONCE_FIELD]
+
+  plaintext =
+    sender: b64encode senderPublicKey
+    message: nacl.crypto_secretbox_open(
+      b64decode(cipher[CIPHER_MESSAGE_FIELD]), messageNonce, messageKey)
+
 
 DisturbeApp = React.createClass
   getInitialState: ->
     userKeys: null
+    userData: null
 
   setPrivateKey: (privateKey) ->
     userKeys = nacl.crypto_box_keypair_from_raw_sk privateKey
     this.setState userKeys: userKeys
-    #retrieveUserData userKeys, this.setUserData, (error) -> alert error
 
-  setUserData: (userData) ->
-    console.log userData
+  setUserData: (userData) -> this.setState userData: {}
 
   onLogin: (event) ->
-    console.log 'login'
-    sendMessage this.state.userKeys
+    sendMessage this.state.userKeys,
+      {'method': 'get_userdata'}
+      ((response) ->
+        console.log response
+        this.setUserData response).bind(this),
+      (xhr) -> alert xhr.responseText
 
   render: ->
     div null,
-      h1 className: "text-monospace large-bottom", "curvech.at"
+      h1 className: 'text-monospace large-bottom', 'curvech.at'
       if this.state.userKeys?
         div null,
-          div className: "row",
-            div className: "col-md-12 large-bottom",
-              h3 className: "text-monospace", "Keys"
-              p className: "text-monospace",
-              "Your keys. Anyone who has your public key can send
-              messages that only you can decrypt."
-              p className: "text-monospace",
-                "Spread your public key wide. The secret key you
-                should keep, um, secret."
-          KeyCabinet userKeys: this.state.userKeys
           div className: 'row',
-            div className: 'col-md-12 ',
-              button className:'btn btn-success pull-right',
-              onClick:this.onLogin, 'Sign in with Public Key'
+            div className: 'col-md-12 large-bottom',
+              h3 className: 'text-monospace', 'Keys'
+              p className: 'text-monospace',
+              'Anyone who has your public key can send
+              messages that only you can decrypt.'
+              p className: 'text-monospace',
+                'Spread your public key wide. The secret key you
+                should keep, um, secret.'
+          KeyCabinet userKeys: this.state.userKeys
+          if not this.state.userData?
+            div className: 'row',
+              div className: 'col-md-12 large-bottom',
+                button className:'btn btn-success pull-right',
+                onClick:this.onLogin, 'Sign in with your public key'
+          else
+            div className: 'row',
+              div className: 'col-md-12 large-bottom',
+                span className: 'text-monospace text-muted',
+                'Successfully retrieved your public key profile.'
+          div className: 'row',
+            div className: 'col-md-12',
+              hr null,
+          if this.state.userData?
+            div className: 'row',
+              div className: 'col-md-12',
+                KeyProfile publicKey: this.state.userKeys.boxPk
+                hr null
+          div className: 'row',
+            div className: 'col-md-12 large-bottom',
+              h3 className: 'text-monospace', 'Compose message'
+              p className: 'text-monospace',
+              'Compose a message and encrypt it. Only the owners of
+              the public keys you specify will be able to decrypt it.'
+            div className: 'col-md-12 large-bottom',
+            EncryptMessage userKeys: this.state.userKeys
       else
         GeneratePrivateKey onGenerateKey: this.setPrivateKey
+
+
+KeyProfile = React.createClass
+  getInitialState: ->
+    name: 'anonymous'
+    email: ''
+    social: ''
+
+  componentDidMount: () ->
+    this.renderIdenticon this.refs.identicon.getDOMNode()
+
+  renderIdenticon: (elem) -> $(elem).identicon5 size: 80
+
+  render: ->
+    div null,
+      h3 className: 'media-heading text-monospace',
+      'Public Key Profile'
+      div className: 'media',
+        span className: 'pull-left', href: '#',
+          div className: 'media-object', ref: 'identicon',
+          toHex nacl.crypto_hash this.props.publicKey
+        div className: 'media-body',
+          KeyProfileItem name: 'Key', value: b64encode(this.props.publicKey),
+          iconClass: 'fa-key', editable: false
+          KeyProfileItem name: 'Name', value: this.state.name,
+          iconClass: 'fa-user', editable: true
+          KeyProfileItem name: 'Email', value: this.state.email,
+          iconClass: 'fa-envelope-o', editable: true
+          KeyProfileItem name: 'Social', value: this.state.social,
+          iconClass: 'fa-share-alt', editable: true
+
+
+KeyProfileItem = React.createClass
+  componentDidMount: () ->
+    editable = if this.props.editable? then this.props.editable else false
+    if editable
+      $(this.refs[this.props.name].getDOMNode()).editable
+        type: 'text'
+        pk1: 1,
+        title: 'enter name'
+        showbuttons: false
+
+  render: () ->
+    icon = ''
+    if this.props.iconClass?
+      icon = i className: "fa #{this.props.iconClass} fa-fw text-muted"
+    valueClass = ''
+    if this.props.editable
+      valueClass = 'editable editable-click'
+    div className: 'user-profile-item',
+      icon
+      span className: 'text-monospace', "#{this.props.name}: "
+      span className: valueClass, ref: this.props.name, href: '#',
+      this.props.value
+
+
+EncryptMessage = React.createClass
+  getInitialState: () ->
+    recipients: []
+    message: ''
+    invalidRecipients: []
+
+  componentDidMount: () ->
+    recipients = $(this.refs.recipients.getDOMNode())
+    recipients.tagsinput
+      tagClass: ((key) ->
+        if validPublicKey key
+          'label label-primary'
+        else
+          invalidRecipients = this.state.invalidRecipients.slice 0
+          invalidRecipients.push key
+          this.setState invalidRecipients: invalidRecipients
+          'label label-danger'
+        ).bind(this)
+      trimValue: true
+    recipients.on 'itemRemoved', ((event) ->
+      index = this.state.invalidRecipients.indexOf(event.item)
+      if index != -1
+        invalidRecipients = this.state.invalidRecipients.slice 0
+        invalidRecipients.splice index, 1
+        this.setState invalidRecipients: invalidRecipients
+      ).bind(this)
+    $(recipients.tagsinput 'input').addClass 'form-control'
+
+  changeMessage: (event) ->
+    this.setState message: event.target.value
+
+  encryptMessage: (event) ->
+    event.preventDefault()
+    recipientNode = $(this.refs.recipients.getDOMNode())
+    recipientKeys =
+      for key in $(recipientNode).val().split(',')
+        b64decode key
+    try
+      cipher = encryptMessage(
+        this.props.userKeys, recipientKeys, this.state.message)
+      this.setState message: cipher
+    catch error
+      console.log error
+
+  decryptMessage: (event) ->
+    event.preventDefault()
+    try
+      plaintext = decryptMessage this.props.userKeys, this.state.message
+      plaintext.message = decode_utf8 plaintext.message
+      {sender, message} = plaintext
+      this.setState message: JSON.stringify plaintext
+    catch error
+      console.log error
+
+
+  render: ->
+    error = null
+    if this.state.invalidRecipients.length > 0
+      invalidJoined = "#{this.state.invalidRecipients.join(', ')}"
+      if this.state.invalidRecipients.length == 1
+        error = "#{invalidJoined} is not a valid public key"
+      else
+        error = "#{invalidJoined} are not valid public keys"
+
+    encryptButtonProps =
+      className: 'btn btn-default'
+      onClick: this.encryptMessage
+    if error? then encryptButtonProps.disabled = 'true'
+
+    form className: 'form-horizontal',
+      if error?
+        div className: 'form-group',
+          div className: 'col-xs-12',
+            span className: 'text-monospace text-danger', error
+      div className: 'form-group',
+        div className: 'col-xs-12', style: {display:'inline-block'},
+          label className: 'text-monospace control-label', 'Recipients'
+          input className: 'form-control', type: 'text', defaultValue: '',
+          ref: 'recipients'
+      div className: 'form-group',
+        div className: 'col-xs-12', style: {display:'inline-block'},
+          label className: 'text-monospace control-label', 'Message'
+          textarea className: 'form-control', value: this.state.message,
+          placeholder: 'Type your message..', onChange: this.changeMessage,
+      div className: 'row',
+        div className: 'col-md-12 large-bottom',
+          div className: 'pull-right',
+            button style: {marginRight: '1em'},
+            className:'btn btn-default',
+            onClick: this.decryptMessage, 'Decrypt'
+            button encryptButtonProps,
+              i className: 'fa fa-fw fa-lg fa-lock'
+              'Encrypt'
+
 
 
 KeyCabinet = React.createClass
@@ -217,8 +488,7 @@ KeyCabinet = React.createClass
 PublicKeyField = React.createClass
   getInitialState: () -> shown: false
 
-  onClipboard: (event) ->
-    event.preventDefault()
+  onClipboard: (event) -> event.preventDefault()
 
   onTweet: (event) ->
     event.preventDefault()
@@ -236,7 +506,7 @@ PublicKeyField = React.createClass
       style: {backgroundColor: 'white'}
 
     div className: 'form-group',
-      div className: 'col-md-12', style:{display:'inline-block'},
+      div className: 'col-xs-12', style:{display:'inline-block'},
         div className: 'input-group margin-bottom-lg',
           span className: 'input-group-addon',
             span style: {width: '12em', display: 'inline-block'},
@@ -284,7 +554,7 @@ SecretKeyField = React.createClass
       style: {backgroundColor: 'white'}
 
     div className: 'form-group',
-      div className: 'col-md-12', style:{display:'inline-block'},
+      div className: 'col-xs-12', style:{display:'inline-block'},
         div className: 'input-group margin-bottom-lg',
           span className: 'input-group-addon',
             span style: {width: '12em', display: 'inline-block'},
@@ -310,7 +580,6 @@ GeneratePrivateKey = React.createClass
     this.props.onGenerateKey? private_key
 
   render: ->
-    console.log this.state
     newIdentityButtonProps =
       className: 'btn btn-success pull-right text-monospace'
       onClick: this.generateKey
@@ -367,7 +636,6 @@ VerifyPassword = React.createClass
     verifyPassword: ''
 
   componentDidUpdate: () ->
-    console.log this.validPassword
     this.props.onUpdate this.validPassword
 
   shouldComponentUpdate: (nextProps, nextState) ->
@@ -431,7 +699,7 @@ InputField = React.createClass
       inputProps.className += ' ' + this.props.inputClass
 
     div className: 'form-group',
-      div className: 'col-md-12', style:{display:'inline-block'},
+      div className: 'col-xs-12', style:{display:'inline-block'},
         div className: 'input-group margin-bottom-lg',
           span className: 'input-group-addon',
             span style: {width: '12em', display: 'inline-block'},

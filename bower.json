@@ -17,12 +17,14 @@
     "dependencies": {
         "bootstrap": "reinferio/bootstrap#master",
         "bootstrap-select": "latest",
+        "bootstrap-tagsinput": "latest",
         "github-fork-ribbon-css": "latest",
         "font-awesome": "latest",
         "jquery": "latest",
         "moment": "latest",
         "nprogress": "latest",
         "react": "latest",
+        "x-editable": "latest",
         "zxcvbn": "latest"
     }
 }
