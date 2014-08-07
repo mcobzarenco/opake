@@ -425,11 +425,7 @@ if __name__ == '__main__' or True:
                    debug=True, quiet=False, reloader=True)
     else:
         sys.argv = [program_name]
-        # TODO: (marius) it hangs on forever, see:
-        # https://jira.mongodb.org/browse/PYTHON-607
-        # https://github.com/surfly/gevent/issues/349
-
         bottle.run(app=app, host=bind['host'], port=bind['port'],
-                   debug=False, quiet=True, reloader=False,
+                   debug=False, quiet=False, reloader=False,
                    server='gunicorn', workers=args.workers,
                    worker_class='gevent')
