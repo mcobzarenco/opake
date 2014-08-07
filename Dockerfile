@@ -28,12 +28,14 @@ RUN cd pynacl && python setup.py install
 
 # Install disturbe
 RUN pip install bottle jsonschema gunicorn redis riak
+RUN ldconfig
 RUN mkdir disturbe
 ADD . /src/disturbe
 RUN rm -rf disturbe/static/components
 RUN cd disturbe && bower --allow-root install
 RUN cd disturbe/static && coffee -c disturbe.coffee
 
+VOLUME ["/src/disturbe"]
 WORKDIR /src/disturbe
-RUN ldconfig
+
 ENTRYPOINT ["./disturbe-app.py"]
