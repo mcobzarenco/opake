@@ -25,6 +25,7 @@
         "nprogress": "latest",
         "react": "latest",
         "x-editable": "latest",
+        "zeroclipboard": "latest",
         "zxcvbn": "latest"
     }
 }

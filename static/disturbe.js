@@ -642,8 +642,16 @@
         shown: false
       };
     },
-    onClipboard: function(event) {
-      return event.preventDefault();
+    componentDidMount: function() {
+      var clipboardButton;
+      clipboardButton = $(this.refs.clipboardButton.getDOMNode());
+      this.zeroClipboard = new ZeroClipboard(clipboardButton);
+      return this.zeroClipboard.on('copy', this.onCopyPublicKey);
+    },
+    onCopyPublicKey: function(event) {
+      var clipboard;
+      clipboard = event.clipboardData;
+      return clipboard.setData("text/plain", b64encode(this.props.publicKey));
     },
     onTweet: function(event) {
       var tweet_text;
@@ -685,7 +693,10 @@
         className: 'input-group-btn'
       }, button({
         className: 'btn btn-default text-monospace',
-        onClick: this.onClipboard
+        onClick: function(event) {
+          return event.preventDefault();
+        },
+        ref: 'clipboardButton'
       }, i({
         className: 'fa fa-chain fa-lg'
       }))), span({

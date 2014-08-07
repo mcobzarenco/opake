@@ -477,7 +477,6 @@ EncryptMessage = React.createClass
               'Encrypt'
 
 
-
 KeyCabinet = React.createClass
   render: ->
     form className: 'form-horizontal',
@@ -488,7 +487,14 @@ KeyCabinet = React.createClass
 PublicKeyField = React.createClass
   getInitialState: () -> shown: false
 
-  onClipboard: (event) -> event.preventDefault()
+  componentDidMount: () ->
+    clipboardButton = $ this.refs.clipboardButton.getDOMNode()
+    this.zeroClipboard = new ZeroClipboard(clipboardButton)
+    this.zeroClipboard.on 'copy', this.onCopyPublicKey
+
+  onCopyPublicKey: (event) ->
+    clipboard = event.clipboardData
+    clipboard.setData "text/plain", b64encode this.props.publicKey
 
   onTweet: (event) ->
     event.preventDefault()
@@ -515,7 +521,8 @@ PublicKeyField = React.createClass
           span className: 'input-group-btn',
             button
               className: 'btn btn-default text-monospace',
-              onClick: this.onClipboard,
+              onClick: (event) -> event.preventDefault(),
+              ref: 'clipboardButton',
               i className: 'fa fa-chain fa-lg'
           span className: 'input-group-btn',
             button
