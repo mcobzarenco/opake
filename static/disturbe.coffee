@@ -176,7 +176,7 @@ validPublicKey = (key) ->
   valid = false
   try
     if typeof key == 'string'
-      key = b64decode(key)
+      key = b58decode(key)
     if key.length == nacl.crypto_box_PUBLICKEYBYTES
       valid = true
   catch error
@@ -192,7 +192,7 @@ encryptMessage = (senderKeys, recipientPublicKeys, message) ->
       messageInfo, nonce, recipientPublicKey, senderKeys.boxSk)
 
     decryptInfo = {}
-    decryptInfo[DECRYPT_INFO_SENDER_FIELD] = b64encode senderKeys.boxPk
+    decryptInfo[DECRYPT_INFO_SENDER_FIELD] = b58encode senderKeys.boxPk
     decryptInfo[DECRYPT_INFO_MESSAGE_INFO_FIELD] = b64encode messageInfoBox
     decryptInfo = encode_utf8 JSON.stringify decryptInfo
     decryptInfoBox = nacl.crypto_box(
@@ -215,14 +215,13 @@ encryptMessage = (senderKeys, recipientPublicKeys, message) ->
 
   cipher = {}
   cipher[CIPHER_VERSION_FIELD] = CIPHER_VERSION
-  cipher[CIPHER_TRANSIENT_PKEY_FIELD] = b64encode transientKeys.boxPk
+  cipher[CIPHER_TRANSIENT_PKEY_FIELD] = b58encode transientKeys.boxPk
   cipher[CIPHER_MESSAGE_FIELD] = b64encode messageBox
   decryptInfo = {}
   cipher[CIPHER_DECRYPT_INFO_FIELD] = decryptInfo
   for recipientPublicKey in recipientPublicKeys
     if recipientPublicKey.length != nacl.crypto_box_PUBLICKEYBYTES
-      throw new Error(
-        "#{b64encode recipientPublicKey} is not valid public key")
+      throw new Error "#{b58encode recipientPublicKey} is not valid public key"
     {nonce, decryptInfoBox} = secretToRecipient(
       transientKeys, senderKeys, recipientPublicKey, messageInfo)
     decryptInfo[b64encode(nonce)] = b64encode decryptInfoBox
@@ -233,7 +232,7 @@ decryptMessage = (userKeys, cipherText) ->
   GENERIC_ERROR = 'Could not decrypt message.'
   cipher = JSON.parse cipherText
 
-  transientPublicKey = b64decode cipher[CIPHER_TRANSIENT_PKEY_FIELD]
+  transientPublicKey = b58decode cipher[CIPHER_TRANSIENT_PKEY_FIELD]
   decryptInfo = null
   decryptInfoNonce = null
   for nonceBase64, box of cipher[CIPHER_DECRYPT_INFO_FIELD]
@@ -248,7 +247,7 @@ decryptMessage = (userKeys, cipherText) ->
     throw GENERIC_ERROR
 
   decryptInfo = JSON.parse decode_utf8 decryptInfo
-  senderPublicKey = b64decode decryptInfo[DECRYPT_INFO_SENDER_FIELD]
+  senderPublicKey = b58decode decryptInfo[DECRYPT_INFO_SENDER_FIELD]
 
   messageInfoBox = b64decode decryptInfo[DECRYPT_INFO_MESSAGE_INFO_FIELD]
   messageInfo = nacl.crypto_box_open(
@@ -259,7 +258,7 @@ decryptMessage = (userKeys, cipherText) ->
   messageNonce = b64decode messageInfo[MESSAGE_INFO_NONCE_FIELD]
 
   plaintext =
-    sender: b64encode senderPublicKey
+    sender: b58encode senderPublicKey
     message: nacl.crypto_secretbox_open(
       b64decode(cipher[CIPHER_MESSAGE_FIELD]), messageNonce, messageKey)
 
@@ -431,7 +430,7 @@ EncryptMessage = React.createClass
     recipientNode = $(this.refs.recipients.getDOMNode())
     recipientKeys =
       for key in $(recipientNode).val().split(',')
-        b64decode key
+        b58decode key
     try
       cipher = encryptMessage(
         this.props.userKeys, recipientKeys, this.state.message)
@@ -508,12 +507,12 @@ PublicKeyField = React.createClass
 
   onCopyPublicKey: (event) ->
     clipboard = event.clipboardData
-    clipboard.setData "text/plain", b64encode this.props.publicKey
+    clipboard.setData "text/plain", b58encode this.props.publicKey
 
   onTweet: (event) ->
     event.preventDefault()
     tweet_text = "cryptch.at is zero knowledge messaging with end to end " +
-    "encryption. My public key is #{b64encode this.props.publicKey}"
+    "encryption. My public key is #{b58encode this.props.publicKey}"
     window.open("https://twitter.com/intent/tweet?text=#{tweet_text}")
 
   render: ->
@@ -522,7 +521,7 @@ PublicKeyField = React.createClass
       readOnly: true
       className: 'form-control text-monospace'
       placeholder: ''
-      value: b64encode this.props.publicKey
+      value: b58encode this.props.publicKey
       style: {backgroundColor: 'white'}
 
     div className: 'form-group',
@@ -561,7 +560,7 @@ SecretKeyField = React.createClass
   render: ->
     classNames = 'form-control text-monospace'
     if this.state.shown
-      value = b64encode this.props.secretKey
+      value = b58encode this.props.secretKey
     else
       classNames += ' text-muted'
       value = '<< Hidden >>'

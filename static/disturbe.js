@@ -199,7 +199,7 @@
     valid = false;
     try {
       if (typeof key === 'string') {
-        key = b64decode(key);
+        key = b58decode(key);
       }
       if (key.length === nacl.crypto_box_PUBLICKEYBYTES) {
         valid = true;
@@ -218,7 +218,7 @@
       nonce = nacl.crypto_box_random_nonce();
       messageInfoBox = nacl.crypto_box(messageInfo, nonce, recipientPublicKey, senderKeys.boxSk);
       decryptInfo = {};
-      decryptInfo[DECRYPT_INFO_SENDER_FIELD] = b64encode(senderKeys.boxPk);
+      decryptInfo[DECRYPT_INFO_SENDER_FIELD] = b58encode(senderKeys.boxPk);
       decryptInfo[DECRYPT_INFO_MESSAGE_INFO_FIELD] = b64encode(messageInfoBox);
       decryptInfo = encode_utf8(JSON.stringify(decryptInfo));
       decryptInfoBox = nacl.crypto_box(decryptInfo, nonce, recipientPublicKey, transientKeys.boxSk);
@@ -241,14 +241,14 @@
     messageInfo = encode_utf8(JSON.stringify(messageInfo));
     cipher = {};
     cipher[CIPHER_VERSION_FIELD] = CIPHER_VERSION;
-    cipher[CIPHER_TRANSIENT_PKEY_FIELD] = b64encode(transientKeys.boxPk);
+    cipher[CIPHER_TRANSIENT_PKEY_FIELD] = b58encode(transientKeys.boxPk);
     cipher[CIPHER_MESSAGE_FIELD] = b64encode(messageBox);
     decryptInfo = {};
     cipher[CIPHER_DECRYPT_INFO_FIELD] = decryptInfo;
     for (_i = 0, _len = recipientPublicKeys.length; _i < _len; _i++) {
       recipientPublicKey = recipientPublicKeys[_i];
       if (recipientPublicKey.length !== nacl.crypto_box_PUBLICKEYBYTES) {
-        throw new Error("" + (b64encode(recipientPublicKey)) + " is not valid public key");
+        throw new Error("" + (b58encode(recipientPublicKey)) + " is not valid public key");
       }
       _ref1 = secretToRecipient(transientKeys, senderKeys, recipientPublicKey, messageInfo), nonce = _ref1.nonce, decryptInfoBox = _ref1.decryptInfoBox;
       decryptInfo[b64encode(nonce)] = b64encode(decryptInfoBox);
@@ -260,7 +260,7 @@
     var GENERIC_ERROR, box, cipher, decryptInfo, decryptInfoNonce, error, messageInfo, messageInfoBox, messageKey, messageNonce, nonceBase64, plaintext, senderPublicKey, transientPublicKey, _ref1;
     GENERIC_ERROR = 'Could not decrypt message.';
     cipher = JSON.parse(cipherText);
-    transientPublicKey = b64decode(cipher[CIPHER_TRANSIENT_PKEY_FIELD]);
+    transientPublicKey = b58decode(cipher[CIPHER_TRANSIENT_PKEY_FIELD]);
     decryptInfo = null;
     decryptInfoNonce = null;
     _ref1 = cipher[CIPHER_DECRYPT_INFO_FIELD];
@@ -278,7 +278,7 @@
       throw GENERIC_ERROR;
     }
     decryptInfo = JSON.parse(decode_utf8(decryptInfo));
-    senderPublicKey = b64decode(decryptInfo[DECRYPT_INFO_SENDER_FIELD]);
+    senderPublicKey = b58decode(decryptInfo[DECRYPT_INFO_SENDER_FIELD]);
     messageInfoBox = b64decode(decryptInfo[DECRYPT_INFO_MESSAGE_INFO_FIELD]);
     messageInfo = nacl.crypto_box_open(messageInfoBox, decryptInfoNonce, senderPublicKey, userKeys.boxSk);
     messageInfo = JSON.parse(decode_utf8(messageInfo));
@@ -286,7 +286,7 @@
     messageKey = b64decode(messageInfo[MESSAGE_INFO_KEY_FIELD]);
     messageNonce = b64decode(messageInfo[MESSAGE_INFO_NONCE_FIELD]);
     return plaintext = {
-      sender: b64encode(senderPublicKey),
+      sender: b58encode(senderPublicKey),
       message: nacl.crypto_secretbox_open(b64decode(cipher[CIPHER_MESSAGE_FIELD]), messageNonce, messageKey)
     };
   };
@@ -539,7 +539,7 @@
         _results = [];
         for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
           key = _ref1[_i];
-          _results.push(b64decode(key));
+          _results.push(b58decode(key));
         }
         return _results;
       })();
@@ -668,12 +668,12 @@
     onCopyPublicKey: function(event) {
       var clipboard;
       clipboard = event.clipboardData;
-      return clipboard.setData("text/plain", b64encode(this.props.publicKey));
+      return clipboard.setData("text/plain", b58encode(this.props.publicKey));
     },
     onTweet: function(event) {
       var tweet_text;
       event.preventDefault();
-      tweet_text = "cryptch.at is zero knowledge messaging with end to end " + ("encryption. My public key is " + (b64encode(this.props.publicKey)));
+      tweet_text = "cryptch.at is zero knowledge messaging with end to end " + ("encryption. My public key is " + (b58encode(this.props.publicKey)));
       return window.open("https://twitter.com/intent/tweet?text=" + tweet_text);
     },
     render: function() {
@@ -683,7 +683,7 @@
         readOnly: true,
         className: 'form-control text-monospace',
         placeholder: '',
-        value: b64encode(this.props.publicKey),
+        value: b58encode(this.props.publicKey),
         style: {
           backgroundColor: 'white'
         }
@@ -755,7 +755,7 @@
       var classNames, inputProps, value;
       classNames = 'form-control text-monospace';
       if (this.state.shown) {
-        value = b64encode(this.props.secretKey);
+        value = b58encode(this.props.secretKey);
       } else {
         classNames += ' text-muted';
         value = '<< Hidden >>';
