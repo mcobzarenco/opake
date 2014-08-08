@@ -81,8 +81,6 @@
 
   encode_utf8 = nacl.encode_utf8, decode_utf8 = nacl.decode_utf8;
 
-  $.fn.editable.defaults.mode = 'inline';
-
   credentialsToSecretKey = function(email, password) {
     var password_hash;
     password_hash = nacl.crypto_hash_string(password);
@@ -128,7 +126,7 @@
     noncedZerosBox = concatBuffers(nonce, zerosBox);
     payload = {};
     payload[HELLO_CLIENT_TRANSIENT_PKEY_FIELD] = b64encode(transientKeys.boxPk);
-    payload[HELLO_PADDING_FIELD] = b64encode(Uint8Array(HELLO_PADDING_BYTES));
+    payload[HELLO_PADDING_FIELD] = b64encode(new Uint8Array(HELLO_PADDING_BYTES));
     payload[HELLO_ZEROS_BOX_FIELD] = b64encode(noncedZerosBox);
     return $.ajax({
       type: 'POST',
@@ -316,7 +314,6 @@
       return sendMessage(this.state.userKeys, {
         'method': 'get_userdata'
       }, (function(response) {
-        console.log(response);
         return this.setUserData(response);
       }).bind(this), function(xhr) {
         return alert(xhr.responseText);
@@ -354,13 +351,7 @@
         className: 'row'
       }, div({
         className: 'col-md-12'
-      }, hr(null))), this.state.userData != null ? div({
-        className: 'row'
-      }, div({
-        className: 'col-md-12'
-      }, KeyProfile({
-        publicKey: this.state.userKeys.boxPk
-      }), hr(null))) : void 0, div({
+      }, hr(null))), div({
         className: 'row'
       }, div({
         className: 'col-md-12 large-bottom'
@@ -473,40 +464,65 @@
       return {
         recipients: [],
         message: '',
-        invalidRecipients: []
+        recipients: []
       };
     },
+    getInvalidRecipientKeys: function() {
+      var invalid, recipient, _i, _len, _ref1;
+      invalid = [];
+      _ref1 = this.state.recipients;
+      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+        recipient = _ref1[_i];
+        if (!recipient.valid) {
+          invalid.push(recipient.key);
+        }
+      }
+      return invalid;
+    },
     componentDidMount: function() {
-      var recipients;
-      recipients = $(this.refs.recipients.getDOMNode());
-      recipients.tagsinput({
+      var recipientsNode;
+      recipientsNode = $(this.refs.recipients.getDOMNode());
+      recipientsNode.tagsinput({
         tagClass: (function(key) {
-          var invalidRecipients;
+          var labelClass, recipient, recipients;
+          recipients = this.state.recipients.slice(0);
+          recipient = {
+            key: key
+          };
           if (validPublicKey(key)) {
-            return 'label label-primary';
+            labelClass = 'label label-primary';
+            recipient.valid = true;
           } else {
-            invalidRecipients = this.state.invalidRecipients.slice(0);
-            invalidRecipients.push(key);
-            this.setState({
-              invalidRecipients: invalidRecipients
-            });
-            return 'label label-danger';
+            labelClass = 'label label-danger';
+            recipient.valid = false;
           }
+          recipients.push(recipient);
+          this.setState({
+            recipients: recipients
+          });
+          return labelClass;
         }).bind(this),
         trimValue: true
       });
-      recipients.on('itemRemoved', (function(event) {
-        var index, invalidRecipients;
-        index = this.state.invalidRecipients.indexOf(event.item);
+      recipientsNode.on('itemRemoved', (function(event) {
+        var index, recipient, recipients, _i, _len, _ref1;
+        index = -1;
+        _ref1 = this.state.recipients;
+        for (index = _i = 0, _len = _ref1.length; _i < _len; index = ++_i) {
+          recipient = _ref1[index];
+          if (recipient.key === event.item) {
+            break;
+          }
+        }
         if (index !== -1) {
-          invalidRecipients = this.state.invalidRecipients.slice(0);
-          invalidRecipients.splice(index, 1);
+          recipients = this.state.recipients.slice(0);
+          recipients.splice(index, 1);
           return this.setState({
-            invalidRecipients: invalidRecipients
+            recipients: recipients
           });
         }
       }).bind(this));
-      return $(recipients.tagsinput('input')).addClass('form-control');
+      return $(recipientsNode.tagsinput('input')).addClass('form-control');
     },
     changeMessage: function(event) {
       return this.setState({
@@ -553,11 +569,12 @@
       }
     },
     render: function() {
-      var encryptButtonProps, error, invalidJoined;
+      var encryptButtonProps, error, invalidJoined, invalidRecipients;
       error = null;
-      if (this.state.invalidRecipients.length > 0) {
-        invalidJoined = "" + (this.state.invalidRecipients.join(', '));
-        if (this.state.invalidRecipients.length === 1) {
+      invalidRecipients = this.getInvalidRecipientKeys();
+      if (invalidRecipients.length > 0) {
+        invalidJoined = "" + (invalidRecipients.join(', '));
+        if (invalidRecipients.length === 1) {
           error = "" + invalidJoined + " is not a valid public key";
         } else {
           error = "" + invalidJoined + " are not valid public keys";
@@ -567,7 +584,7 @@
         className: 'btn btn-default',
         onClick: this.encryptMessage
       };
-      if (error != null) {
+      if ((error != null) || this.state.recipients.length === 0) {
         encryptButtonProps.disabled = 'true';
       }
       return form({
@@ -790,6 +807,7 @@
     },
     generateKey: function(event) {
       var email, password, private_key, _base;
+      event.preventDefault();
       email = this.state.email;
       password = this.state.password;
       private_key = credentialsToSecretKey(email, password);
@@ -802,7 +820,7 @@
         onClick: this.generateKey
       };
       if (!this.state.validNewKey) {
-        newIdentityButtonProps.disabled = '1';
+        newIdentityButtonProps.disabled = 'true';
       }
       return div({
         className: 'row'
@@ -989,6 +1007,8 @@
     }
   });
 
-  React.renderComponent(DisturbeApp(), document.getElementById('app'));
+  $(function() {
+    return React.renderComponent(DisturbeApp(), document.getElementById('app'));
+  });
 
 }).call(this);

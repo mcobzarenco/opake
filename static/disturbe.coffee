@@ -58,7 +58,7 @@ nacl = nacl_factory.instantiate()
 scrypt = scrypt_module_factory()
 {encode_utf8, decode_utf8} = nacl
 
-$.fn.editable.defaults.mode = 'inline';
+# $.fn.editable.defaults.mode = 'inline';
 
 
 credentialsToSecretKey = (email, password) ->
@@ -102,7 +102,7 @@ sendHello = (transientKeys, success, error) ->
 
   payload = {}
   payload[HELLO_CLIENT_TRANSIENT_PKEY_FIELD] = b64encode transientKeys.boxPk
-  payload[HELLO_PADDING_FIELD] = b64encode Uint8Array(HELLO_PADDING_BYTES)
+  payload[HELLO_PADDING_FIELD] = b64encode new Uint8Array(HELLO_PADDING_BYTES)
   payload[HELLO_ZEROS_BOX_FIELD] = b64encode noncedZerosBox
   $.ajax
     type: 'POST'
@@ -279,7 +279,6 @@ DisturbeApp = React.createClass
     sendMessage this.state.userKeys,
       {'method': 'get_userdata'}
       ((response) ->
-        console.log response
         this.setUserData response).bind(this),
       (xhr) -> alert xhr.responseText
 
@@ -311,11 +310,11 @@ DisturbeApp = React.createClass
           div className: 'row',
             div className: 'col-md-12',
               hr null,
-          if this.state.userData?
-            div className: 'row',
-              div className: 'col-md-12',
-                KeyProfile publicKey: this.state.userKeys.boxPk
-                hr null
+          # if this.state.userData?
+          #   div className: 'row',
+          #     div className: 'col-md-12',
+          #       KeyProfile publicKey: this.state.userKeys.boxPk
+          #       hr null
           div className: 'row',
             div className: 'col-md-12 large-bottom',
               h3 className: 'text-monospace', 'Compose message'
@@ -386,29 +385,43 @@ EncryptMessage = React.createClass
   getInitialState: () ->
     recipients: []
     message: ''
-    invalidRecipients: []
+    recipients: []
+
+  getInvalidRecipientKeys: () ->
+    invalid = []
+    for recipient in this.state.recipients
+      if not recipient.valid
+        invalid.push recipient.key
+    invalid
 
   componentDidMount: () ->
-    recipients = $(this.refs.recipients.getDOMNode())
-    recipients.tagsinput
+    recipientsNode = $ this.refs.recipients.getDOMNode()
+    recipientsNode.tagsinput
       tagClass: ((key) ->
+        recipients = this.state.recipients.slice 0
+        recipient = key: key
         if validPublicKey key
-          'label label-primary'
+          labelClass = 'label label-primary'
+          recipient.valid = true
         else
-          invalidRecipients = this.state.invalidRecipients.slice 0
-          invalidRecipients.push key
-          this.setState invalidRecipients: invalidRecipients
-          'label label-danger'
+          labelClass = 'label label-danger'
+          recipient.valid = false
+        recipients.push recipient
+        this.setState recipients: recipients
+        labelClass
         ).bind(this)
       trimValue: true
-    recipients.on 'itemRemoved', ((event) ->
-      index = this.state.invalidRecipients.indexOf(event.item)
+    recipientsNode.on 'itemRemoved', ((event) ->
+      index = -1
+      for recipient, index in this.state.recipients
+        if recipient.key == event.item then break
       if index != -1
-        invalidRecipients = this.state.invalidRecipients.slice 0
-        invalidRecipients.splice index, 1
-        this.setState invalidRecipients: invalidRecipients
+        recipients = this.state.recipients.slice 0
+        recipients.splice index, 1
+        this.setState recipients: recipients
       ).bind(this)
-    $(recipients.tagsinput 'input').addClass 'form-control'
+
+    $(recipientsNode.tagsinput 'input').addClass 'form-control'
 
   changeMessage: (event) ->
     this.setState message: event.target.value
@@ -436,12 +449,12 @@ EncryptMessage = React.createClass
     catch error
       console.log error
 
-
   render: ->
     error = null
-    if this.state.invalidRecipients.length > 0
-      invalidJoined = "#{this.state.invalidRecipients.join(', ')}"
-      if this.state.invalidRecipients.length == 1
+    invalidRecipients = this.getInvalidRecipientKeys()
+    if invalidRecipients.length > 0
+      invalidJoined = "#{invalidRecipients.join(', ')}"
+      if invalidRecipients.length == 1
         error = "#{invalidJoined} is not a valid public key"
       else
         error = "#{invalidJoined} are not valid public keys"
@@ -449,7 +462,8 @@ EncryptMessage = React.createClass
     encryptButtonProps =
       className: 'btn btn-default'
       onClick: this.encryptMessage
-    if error? then encryptButtonProps.disabled = 'true'
+    if error? or this.state.recipients.length == 0
+      encryptButtonProps.disabled = 'true'
 
     form className: 'form-horizontal',
       if error?
@@ -581,6 +595,7 @@ GeneratePrivateKey = React.createClass
     password: ''
 
   generateKey: (event) ->
+    event.preventDefault()
     email = this.state.email
     password = this.state.password
     private_key = credentialsToSecretKey email, password
@@ -591,7 +606,7 @@ GeneratePrivateKey = React.createClass
       className: 'btn btn-success pull-right text-monospace'
       onClick: this.generateKey
     if not this.state.validNewKey
-      newIdentityButtonProps.disabled = '1'
+      newIdentityButtonProps.disabled = 'true'
 
     div className: 'row',
       div className: 'col-md-12',
@@ -714,4 +729,5 @@ InputField = React.createClass
           input inputProps
 
 
-React.renderComponent DisturbeApp(), document.getElementById('app')
+
+$ () -> React.renderComponent DisturbeApp(), document.getElementById('app')
