@@ -27,7 +27,7 @@ RUN git clone https://github.com/pyca/pynacl.git
 RUN cd pynacl && python setup.py install
 
 # Install disturbe
-RUN pip install bottle jsonschema gunicorn redis riak
+RUN pip install bottle jsonschema gevent gunicorn redis riak
 RUN ldconfig
 RUN mkdir disturbe
 ADD . /src/disturbe
