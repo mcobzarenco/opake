@@ -1,6 +1,20 @@
-input.form-control[readonly] {
+body {
+  margin-bottom: 20em;
+}
+
+input[readonly] {
   cursor: auto;
   background-color: #aaa
+}
+
+textarea[readonly] {
+  cursor: auto;
+  background-color: #aaa
+}
+
+p {
+  font-family: monospace;
+  font-size: 1.1em;
 }
 
 .text-monospace {
@@ -12,11 +26,20 @@ input.form-control[readonly] {
 }
 
 .password-entropy {
-  font-size: 1.5em;
+  font-size: 1.2em;
   margin-bottom: 1em;
 }
 
 .tag {
+  font-family: monospace;
+}
+
+.btn {
+  font-family: monospace;
+}
+
+.control-label {
+  font-size: 1.2em;
   font-family: monospace;
 }
 
@@ -53,5 +76,4 @@ input.form-control[readonly] {
 
 textarea {
   resize: vertical;
-  min-height: 10em;
 }
