@@ -287,16 +287,16 @@ DisturbeApp = React.createClass
     div null,
       if this.state.userKeys?
         div null,
-          h1 className: 'text-monospace large-bottom', 'curvech.at'
+          h1 className: 'large-bottom', 'curvech.at'
           div className: 'row',
             div className: 'col-md-12',
-              h3 className: 'text-monospace', 'Curve Profile'
+              h3 null, 'Curve Profile'
           div className: 'row',
             div className: 'col-md-12 large-bottom',
-              p className: 'text-monospace',
+              p null,
               'Anyone who has your curve ID can send messages that
               only you can decrypt.'
-              p className: 'text-monospace',
+              p null,
               'Spread your curve ID wide. The secret key you should
               never reveal.'
           CurveProfile userKeys: this.state.userKeys
@@ -319,8 +319,8 @@ DisturbeApp = React.createClass
               DecryptMessage userKeys: this.state.userKeys
       else
         div className: 'row',
-          div className: 'col-md-10 col-md-offset-1 large-bottom',
-            h1 className: 'text-monospace large-bottom', 'curvech.at'
+          div className: 'col-md-8 col-md-offset-2 large-bottom',
+            h1 className: 'large-bottom', 'curvech.at'
             GeneratePrivateKey onGenerateKey: this.setPrivateKey
 
 
@@ -337,7 +337,7 @@ KeyProfile = React.createClass
 
   render: ->
     div null,
-      h3 className: 'media-heading text-monospace',
+      h3 className: 'media-heading',
       'Public Key Profile'
       div className: 'media',
         span className: 'pull-left', href: '#',
@@ -373,7 +373,7 @@ KeyProfileItem = React.createClass
       valueClass = 'editable editable-click'
     div className: 'user-profile-item',
       icon
-      span className: 'text-monospace', "#{this.props.name}: "
+      span null, "#{this.props.name}: "
       span className: valueClass, ref: this.props.name, href: '#',
       this.props.value
 
@@ -387,8 +387,8 @@ EncryptMessage = React.createClass
     div null,
       div className: 'row',
         div className: 'col-md-12 large-bottom',
-          h3 className: 'text-monospace', 'Compose an encrypted message'
-          p className: 'text-monospace',
+          h3 null, 'Compose an encrypted message'
+          p null,
           'Only the owners of the public keys you specify will be
             able to decrypt it.'
       if not this.state.ciphertext?
@@ -444,7 +444,9 @@ ComposeMessage = React.createClass
         this.setState recipients: recipients
       ).bind(this)
 
-    $(recipientsNode.tagsinput 'input').addClass 'form-control'
+    innerInput = $(recipientsNode.tagsinput 'input')
+    innerInput.addClass 'form-control'
+    innerInput.css width : '100%'
 
   changeMessage: (event) -> this.setState message: event.target.value
 
@@ -483,15 +485,15 @@ ComposeMessage = React.createClass
         if error?
           div className: 'form-group',
             div className: 'col-xs-12',
-              span className: 'text-monospace text-danger', error
+              span className: 'text-danger', error
         div className: 'form-group',
           div className: 'col-xs-12', style: {display:'inline-block'},
-            label className: 'text-monospace control-label', 'Recipients'
+            label className: 'control-label', 'Recipients'
             input className: 'form-control', type: 'text', defaultValue: '',
             ref: 'recipients'
         div className: 'form-group',
           div className: 'col-xs-12', style: {display:'inline-block'},
-            label className: 'text-monospace control-label', 'Message'
+            label className: 'control-label', 'Message'
             textarea className: 'form-control', value: this.state.message,
             placeholder: 'Type your message..', onChange: this.changeMessage,
             rows: 10
@@ -538,18 +540,18 @@ DecryptMessage = React.createClass
     div null,
       div className: 'row',
         div className: 'col-md-12 large-bottom',
-          h3 className: 'text-monospace', 'Decrypt a message'
-          p className: 'text-monospace',
+          h3 null, 'Decrypt a message'
+          p null,
           'You can only decrypt a message that was encrypted for your curve ID.'
       if not this.state.plaintext?
         form className: 'form-horizontal',
           if this.state.error?
             div className: 'form-group',
               div className: 'col-xs-12',
-                span className: 'text-monospace text-danger', this.state.error
+                span className: 'text-danger', this.state.error
           div className: 'form-group',
             div className: 'col-xs-12', style: {display:'inline-block'},
-              label className: 'text-monospace control-label', 'Scrambled message'
+              label className: 'control-label', 'Scrambled message'
               textarea className: 'form-control', value: this.state.message,
               placeholder: 'Copy paste the scrambled message',
               onChange: this.changeCiphertext, rows: 10
@@ -574,12 +576,12 @@ Message = React.createClass
     form className: 'form-horizontal',
       div className: 'form-group',
         div className: 'col-xs-12', style: {display:'inline-block'},
-          label className: 'text-monospace control-label', 'From'
+          label className: 'control-label', 'From'
           input className: 'form-control', value: this.props.message.sender,
           readOnly: true, style: {backgroundColor: 'white', cursor: 'auto'}
       div className: 'form-group',
         div className: 'col-xs-12', style: {display:'inline-block'},
-          label className: 'text-monospace control-label', 'Message'
+          label className: 'control-label', 'Message'
           textarea className: 'form-control', value: this.props.message.message,
           readOnly: true, rows: 10,
           style: {backgroundColor: 'white', cursor: 'auto'}
@@ -596,7 +598,7 @@ CurveProfile = React.createClass
       div className: 'row',
         div className: 'col-md-2',
           span className: '', href: '#',
-            span className: 'text-monospace text-muted', 'Fingerprint'
+            span className: 'text-muted', 'Fingerprint'
             div className: 'media-object', ref: 'identicon',
             style: {marginTop: '1em', borderStyle: 'solid', borderWidth: '0px',
             color: '#ccc'},
@@ -634,19 +636,19 @@ PublicKeyField = React.createClass
       style: {backgroundColor: 'white', cursor: 'auto'}
 
     div style: {paddingBottom: '1em'},
-      label className: 'control-label text-monospace',
+      label className: 'control-label',
       style: {fontSize: '1.3em', marginTop: '0em'}, "Curve ID"
       div className: 'input-group input-group-lg',
         input inputProps
         span className: 'input-group-btn',
           button
-            className: 'btn btn-default text-monospace',
+            className: 'btn btn-default',
             onClick: (event) -> event.preventDefault(),
             ref: 'clipboardButton',
             i className: 'fa fa-chain fa-lg'
         span className: 'input-group-btn',
           button
-            className: 'btn btn-default text-monospace',
+            className: 'btn btn-default',
             onClick: this.onTweet,
             i className: 'fa fa-twitter fa-lg'
 
@@ -681,13 +683,13 @@ SecretKeyField = React.createClass
       style: {backgroundColor: 'white', cursor: 'auto'}
 
     div style: {paddingBottom: '1em'},
-      label className: 'control-label text-monospace',
+      label className: 'control-label',
       style: {fontSize: '1.3em'}, 'Secret Key'
       div className: 'input-group input-group-lg',
         input inputProps
         span className: 'input-group-btn',
           button
-            className: 'btn btn-default text-monospace',
+            className: 'btn btn-default',
             onClick: this.onShow,
             if this.state.shown then 'Hide' else 'Show'
 
@@ -707,7 +709,7 @@ GeneratePrivateKey = React.createClass
 
   render: ->
     newIdentityButtonProps =
-      className: 'btn btn-success pull-right text-monospace'
+      className: 'btn btn-success pull-right'
       onClick: this.generateKey
     if not this.state.validNewKey
       newIdentityButtonProps.disabled = 'true'
@@ -715,21 +717,20 @@ GeneratePrivateKey = React.createClass
     div className: 'row',
       div className: 'col-md-12',
         form className: 'form-horizontal',
-          div className: "row",
-            div className: "col-md-12",
-              h3 className: "text-monospace", 'Derive your curve ID'
-              p className: "text-monospace",
-              "Your email and password are used to generate a unique
-              pair of keys."
-              p className: "text-monospace",
-              "The credentials do not leave your device and are never
-              stored."
-          div style: {marginTop: "1em"},
+          div className: 'row',
+            div className: 'col-md-12',
+              h3 null, 'Derive your curve ID'
+              p null,
+              'Your email and password are used to generate a unique
+              pair of keys.'
+              p null,
+              'The credentials do not leave your device and are never
+              stored.'
+          div style: {marginTop: '1em'},
             InputField
               type: 'text'
               label: 'Email'
               placeholder: 'Your email address'
-              inputClass: 'text-monospace'
               onChange: ((email) -> this.setState email: email).bind this
             InputField
               type: 'password',
@@ -737,13 +738,13 @@ GeneratePrivateKey = React.createClass
               placeholder: 'Your strong password'
               onChange: ((password) ->
                 this.setState password: password).bind this
-          div className: "row",
-            div className: "col-md-12",
+          div className: 'row',
+            div className: 'col-md-12',
             VerifyPassword {password: this.state.password,
             onUpdate: ((valid) -> this.setState validNewKey: valid).bind(this)}
           div className: 'form-group',
             div className: 'col-md-12 ',
-              button className: 'btn btn-lg btn-default pull-right text-monospace',
+              button className: 'btn btn-lg btn-success pull-right',
               onClick: this.generateKey, 'Derive your curve ID'
 
 
@@ -766,32 +767,32 @@ VerifyPassword = React.createClass
     newKeyMessage = ''
     if passwordStats.entropy < MINIMUM_PASSWORD_ENTROPY_BITS
       this.validPassword = false
-      newKeyMessage = "Your password is not strong enough, it must to have at" +
+      newKeyMessage = 'Your password is not strong enough, it must to have at' +
       " least #{MINIMUM_PASSWORD_ENTROPY_BITS} bits of entropy."
-      newKeyMessageClass = "text-danger"
+      newKeyMessageClass = 'text-danger'
     else if passwordStats.entropy < 110
-      newKeyMessageClass = "text-warning"
+      newKeyMessageClass = 'text-warning'
     else
-      newKeyMessageClass = "text-success"
-    entropyClass = newKeyMessageClass + " password-entropy"
+      newKeyMessageClass = 'text-success'
+    entropyClass = newKeyMessageClass + ' password-entropy'
 
     if this.props.password != this.state.verifyPassword
       if newKeyMessage == ''
         this.validPassword = false
-        newKeyMessageClass = "text-danger"
+        newKeyMessageClass = 'text-danger'
         newKeyMessage = 'Passwords do not match.'
     else if newKeyMessage == ''
       newKeyMessage = 'Everything is OK'
 
     div null,
-      div className: "row",
-        div className: "col-md-12",
-          div className: 'text-monospace password-entropy',
-          style: {display:'inline-block'}, "Entropy: ",
+      div className: 'row',
+        div className: 'col-md-12',
+          div className: 'password-entropy',
+          style: {display:'inline-block'}, 'Entropy: ',
             span className: entropyClass, "#{passwordStats.entropy} bits"
       div className: "row",
         div className: "col-md-12",
-          p className: 'text-monospace',
+          p null,
           "Your password needs to have high entropy to generate
           high quality keys."
       div style: {marginBottom: "1em"},
@@ -802,7 +803,7 @@ VerifyPassword = React.createClass
             this.setState verifyPassword: password).bind this
           placeholder: 'Optionally retype your password'
       div className: 'row',
-        div className: 'col-md-12 text-monospace large-bottom',
+        div className: 'col-md-12 large-bottom',
           p className: newKeyMessageClass, newKeyMessage
 
 

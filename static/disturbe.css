@@ -1,5 +1,6 @@
 body {
   margin-bottom: 20em;
+  font-family: monospace;
 }
 
 input[readonly] {
@@ -13,7 +14,6 @@ textarea[readonly] {
 }
 
 p {
-  font-family: monospace;
   font-size: 1.1em;
 }
 
@@ -30,17 +30,8 @@ p {
   margin-bottom: 1em;
 }
 
-.tag {
-  font-family: monospace;
-}
-
-.btn {
-  font-family: monospace;
-}
-
 .control-label {
   font-size: 1.2em;
-  font-family: monospace;
 }
 
 .label {
