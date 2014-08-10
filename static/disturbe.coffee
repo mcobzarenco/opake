@@ -727,13 +727,13 @@ GeneratePrivateKey = React.createClass
           div style: {marginTop: "1em"},
             InputField
               type: 'text'
-              label: span className: 'text-monospace', 'Email'
+              label: 'Email'
               placeholder: 'Your email address'
               inputClass: 'text-monospace'
               onChange: ((email) -> this.setState email: email).bind this
             InputField
               type: 'password',
-              label: span className: 'text-monospace', 'Pass'
+              label: 'Password'
               placeholder: 'Your strong password'
               onChange: ((password) ->
                 this.setState password: password).bind this
@@ -797,7 +797,7 @@ VerifyPassword = React.createClass
       div style: {marginBottom: "1em"},
         InputField
           type: 'password',
-          label: span className: 'text-monospace', 'Check'
+          label: 'Check'
           onChange: ((password) ->
             this.setState verifyPassword: password).bind this
           placeholder: 'Optionally retype your password'
@@ -814,7 +814,7 @@ InputField = React.createClass
       type: this.props.type
       placeholder: this.props.placeholder
       value: this.props.value
-      className: 'form-control'
+      className: 'form-control input-lg'
       onChange: this.onChange
     if this.props.value? then inputProps.value = this.props.value
     if this.props.inputClass?
@@ -822,11 +822,8 @@ InputField = React.createClass
 
     div className: 'form-group',
       div className: 'col-xs-12', style:{display:'inline-block'},
-        div className: 'input-group input-group-lg margin-bottom-lg',
-          span className: 'input-group-addon',
-            span style: {width: '8em', display: 'inline-block'},
-            this.props.label
-          input inputProps
+        label className: 'control-label', this.props.label
+        input inputProps
 
 
 $ () -> React.renderComponent DisturbeApp(), document.getElementById('app')
