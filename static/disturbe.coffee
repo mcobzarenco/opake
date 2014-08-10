@@ -265,10 +265,16 @@ decryptMessage = (userKeys, cipherText) ->
       b64decode(cipher[CIPHER_MESSAGE_FIELD]), messageNonce, messageKey)
 
 
+TAB_ENCRYPT = 'encrypt'
+TAB_DECRYPT = 'decrypt'
+TAB_CLOUD = 'cloud'
+
+
 DisturbeApp = React.createClass
   getInitialState: ->
     userKeys: null
     userData: null
+    selectedTab: TAB_ENCRYPT
 
   setPrivateKey: (privateKey) ->
     userKeys = nacl.crypto_box_keypair_from_raw_sk privateKey
@@ -283,7 +289,16 @@ DisturbeApp = React.createClass
         this.setUserData response).bind(this),
       (xhr) -> alert xhr.responseText
 
+  changeTab: (tab, event) ->
+    event.stopPropagation()
+    event.preventDefault()
+    if tab != this.state.selectedTab then this.setState selectedTab: tab
+
   render: ->
+    activeIf = ((tab) ->
+      "#{if this.state.selectedTab == tab then 'active' else ''}").bind this
+    changeTabTo = ((tab) -> this.changeTab.bind(this, tab)).bind this
+
     div null,
       if this.state.userKeys?
         div null,
@@ -300,23 +315,24 @@ DisturbeApp = React.createClass
               'Spread your curve ID wide. The secret key you should
               never reveal.'
           CurveProfile userKeys: this.state.userKeys
-          # if not this.state.userData?
-          #   div className: 'row',
-          #     div className: 'col-md-12 large-bottom',
-          #       button className:'btn btn-success pull-right',
-          #       onClick:this.onLogin, 'Sign in with your public key'
-          # else
-          #   div className: 'row',
-          #     div className: 'col-md-12 large-bottom',
-          #       span className: 'text-monospace text-muted',
-          #       'Successfully retrieved your public key profile.'
-          div className: 'row',
-            div className: 'col-md-12',
-              hr null,
-              EncryptMessage userKeys: this.state.userKeys
-            div className: 'col-md-12 large-bottom',
-              hr null,
-              DecryptMessage userKeys: this.state.userKeys
+          ul className: 'nav nav-tabs nav-justified', role: 'tablist',
+          style: {marginTop: '2em', marginBottom: '1.2em'},
+            li className: activeIf(TAB_ENCRYPT),
+              a href: "##{TAB_ENCRYPT}", onClick: changeTabTo(TAB_ENCRYPT),
+                i className: 'fa fa-lock nav-icon'
+                div className: 'nav-label', 'Encrypt'
+            li className: activeIf(TAB_DECRYPT),
+              a href: "##{TAB_DECRYPT}", onClick: changeTabTo(TAB_DECRYPT),
+                i className: 'fa fa-unlock-alt nav-icon'
+                div className: 'nav-label', 'Decrypt'
+            li className: activeIf(TAB_CLOUD),
+              a href: "##{TAB_CLOUD}", onClick: changeTabTo(TAB_CLOUD),
+                i className: 'fa fa-cloud nav-icon'
+                div className: 'nav-label', 'Cloud'
+          if this.state.selectedTab == TAB_ENCRYPT
+            EncryptMessage userKeys: this.state.userKeys
+          else if this.state.selectedTab == TAB_DECRYPT
+            DecryptMessage userKeys: this.state.userKeys
       else
         div className: 'row',
           div className: 'col-md-8 col-md-offset-2 large-bottom',
@@ -446,7 +462,7 @@ ComposeMessage = React.createClass
 
     innerInput = $(recipientsNode.tagsinput 'input')
     innerInput.addClass 'form-control'
-    innerInput.css width : '100%'
+    innerInput.css width: ''
 
   changeMessage: (event) -> this.setState message: event.target.value
 

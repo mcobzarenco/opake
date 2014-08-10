@@ -68,3 +68,27 @@ p {
 textarea {
   resize: vertical;
 }
+
+@media (min-width: 0px) {
+  .nav-icon {
+    font-size: 2em;
+  }
+
+  .nav-label {
+    font-size: 1.2em;
+  }
+}
+
+@media (min-width: 768px) {
+  .nav-icon {
+    font-size: 3.5em;
+  }
+
+  .nav-label {
+    font-size: 1.4em;
+  }
+}
+
+.nav-justified > li {
+  display: table-cell;
+}
