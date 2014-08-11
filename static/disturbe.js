@@ -36,7 +36,8 @@
       },
       zxcvbn: {
         exports: 'zxcvbn'
-      }
+      },
+      waitSeconds: 0
     }
   });
 
@@ -338,12 +339,6 @@
     };
   };
 
-  TAB_ENCRYPT = 'encrypt';
-
-  TAB_DECRYPT = 'decrypt';
-
-  TAB_CLOUD = 'cloud';
-
   DisturbeApp = React.createClass({
     getInitialState: function() {
       return {
@@ -354,6 +349,7 @@
     },
     setPrivateKey: function(privateKey) {
       var userKeys;
+      window.scrollTo(0, 0);
       userKeys = nacl.crypto_box_keypair_from_raw_sk(privateKey);
       return this.setState({
         userKeys: userKeys
@@ -373,23 +369,7 @@
         return alert(xhr.responseText);
       });
     },
-    changeTab: function(tab, event) {
-      event.stopPropagation();
-      event.preventDefault();
-      if (tab !== this.state.selectedTab) {
-        return this.setState({
-          selectedTab: tab
-        });
-      }
-    },
     render: function() {
-      var activeIf, changeTabTo;
-      activeIf = (function(tab) {
-        return "" + (this.state.selectedTab === tab ? 'active' : '');
-      }).bind(this);
-      changeTabTo = (function(tab) {
-        return this.changeTab.bind(this, tab);
-      }).bind(this);
       return div(null, this.state.userKeys != null ? div(null, h1({
         className: 'large-bottom'
       }, 'curvech.at'), div({
@@ -402,12 +382,67 @@
         className: 'col-md-12 large-bottom'
       }, p(null, 'Anyone who has your curve ID can send messages that only you can decrypt.'), p(null, 'Spread your curve ID wide. The secret key you should never reveal.'))), CurveProfile({
         userKeys: this.state.userKeys
-      }), ul({
+      }), CryptoTabPicker({
+        userKeys: this.state.userKeys
+      })) : div({
+        className: 'row'
+      }, div({
+        className: 'col-md-8 col-md-offset-2 large-bottom'
+      }, h1({
+        className: 'large-bottom'
+      }, 'curvech.at'), GeneratePrivateKey({
+        onGenerateKey: this.setPrivateKey
+      }))));
+    }
+  });
+
+  TAB_ENCRYPT = 'encrypt';
+
+  TAB_DECRYPT = 'decrypt';
+
+  TAB_CLOUD = 'cloud';
+
+  CryptoTabPicker = React.createClass({
+    getInitialState: function() {
+      return {
+        selectedTab: TAB_ENCRYPT
+      };
+    },
+    changeTab: function(tab, event) {
+      event.stopPropagation();
+      event.preventDefault();
+      if (tab !== this.state.selectedTab) {
+        return this.setState({
+          selectedTab: tab
+        });
+      }
+    },
+    render: function() {
+      var activeIf, changeTabTo, hiddenIfNot;
+      activeIf = (function(tab) {
+        return "" + (this.state.selectedTab === tab ? 'active' : '');
+      }).bind(this);
+      changeTabTo = (function(tab) {
+        return this.changeTab.bind(this, tab);
+      }).bind(this);
+      hiddenIfNot = (function(tab) {
+        if (this.state.selectedTab === tab) {
+          return '';
+        } else {
+          return 'hidden';
+        }
+      }).bind(this);
+      return div(null, div({
+        className: 'row'
+      }, div({
+        className: 'col-md-12'
+      }, ul({
         className: 'nav nav-tabs nav-justified',
         role: 'tablist',
         style: {
           marginTop: '2em',
-          marginBottom: '1.2em'
+          marginBottom: '1.2em',
+          width: '100%'
         }
       }, li({
         className: activeIf(TAB_ENCRYPT)
@@ -436,23 +471,19 @@
         className: 'fa fa-cloud nav-icon'
       }), div({
         className: 'nav-label'
-      }, 'Cloud')))), this.state.selectedTab === TAB_ENCRYPT ? EncryptMessage({
-        userKeys: this.state.userKeys
-      }) : this.state.selectedTab === TAB_DECRYPT ? DecryptMessage({
-        userKeys: this.state.userKeys
-      }) : void 0) : div({
-        className: 'row'
-      }, div({
-        className: 'col-md-8 col-md-offset-2 large-bottom'
-      }, h1({
-        className: 'large-bottom'
-      }, 'curvech.at'), GeneratePrivateKey({
-        onGenerateKey: this.setPrivateKey
-      }))));
+      }, 'Cloud')))))), div({
+        className: hiddenIfNot(TAB_ENCRYPT)
+      }, EncryptMessage({
+        userKeys: this.props.userKeys
+      })), div({
+        className: hiddenIfNot(TAB_DECRYPT)
+      }, DecryptMessage({
+        userKeys: this.props.userKeys
+      })), div({
+        className: hiddenIfNot(TAB_CLOUD)
+      }, ''));
     }
   });
-
-  CryptoTabPicker = React.createClass;
 
   KeyProfile = React.createClass({
     getInitialState: function() {
@@ -921,7 +952,7 @@
       return div(null, div({
         className: 'row'
       }, div({
-        className: 'col-md-2'
+        className: 'col-sm-2 hidden-xs'
       }, span({
         className: '',
         href: '#'
@@ -933,7 +964,7 @@
           marginTop: '1em'
         }
       }, toHex(nacl.crypto_hash(this.props.userKeys.boxPk))))), div({
-        className: 'col-md-10'
+        className: 'col-sm-10'
       }, PublicKeyField({
         publicKey: this.props.userKeys.boxPk
       }), SecretKeyField({
@@ -949,8 +980,6 @@
       };
     },
     componentDidMount: function() {
-      var clipboardButton;
-      clipboardButton = $(this.refs.clipboardButton.getDOMNode());
       return this.renderIdenticon(this.refs.identicon.getDOMNode());
     },
     renderIdenticon: function(elem) {
@@ -959,9 +988,10 @@
       });
     },
     onCopyPublicKey: function(event) {
-      var clipboard;
-      clipboard = event.clipboardData;
-      return clipboard.setData("text/plain", b58encode(this.props.publicKey));
+      var inputNode;
+      inputNode = this.refs.inputPublicKey.getDOMNode();
+      inputNode.focus();
+      return inputNode.setSelectionRange(0, inputNode.value.length);
     },
     onTweet: function(event) {
       var tweet_text;
@@ -980,7 +1010,9 @@
         style: {
           backgroundColor: 'white',
           cursor: 'auto'
-        }
+        },
+        ref: 'inputPublicKey',
+        onClick: this.onCopyPublicKey
       };
       return div({
         style: {
@@ -995,7 +1027,7 @@
       }, "Curve ID"), div({
         className: 'input-group input-group-lg'
       }, span({
-        className: 'input-group-btn'
+        className: 'input-group-btn hidden-sm hidden-md hidden-lg'
       }, button({
         className: 'btn btn-default'
       }, span({
@@ -1004,12 +1036,10 @@
         className: 'input-group-btn'
       }, button({
         className: 'btn btn-default',
-        onClick: function(event) {
-          return event.preventDefault();
-        },
+        onClick: this.onCopyPublicKey,
         ref: 'clipboardButton'
       }, i({
-        className: 'fa fa-chain fa-lg'
+        className: 'fa fa-copy fa-lg'
       }))), span({
         className: 'input-group-btn'
       }, button({
@@ -1219,13 +1249,13 @@
         }
       }, InputField({
         type: 'password',
-        label: 'Check',
+        label: 'Check (optional)',
         onChange: (function(password) {
           return this.setState({
             verifyPassword: password
           });
         }).bind(this),
-        placeholder: 'Optionally retype your password'
+        placeholder: 'Retype password (optional)'
       })), div({
         className: 'row'
       }, div({

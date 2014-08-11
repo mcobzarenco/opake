@@ -26,6 +26,7 @@ require.config
       exports: 'React'
     zxcvbn:
       exports: 'zxcvbn'
+    waitSeconds: 0
 
 
 `require(['jquery', 'react', 'zxcvbn', 'bootstrap', 'bootstrapTags', 'identicon5',
@@ -300,11 +301,6 @@ decryptMessage = (userKeys, cipherText) ->
       b64decode(cipher[CIPHER_MESSAGE_FIELD]), messageNonce, messageKey)
 
 
-TAB_ENCRYPT = 'encrypt'
-TAB_DECRYPT = 'decrypt'
-TAB_CLOUD = 'cloud'
-
-
 DisturbeApp = React.createClass
   getInitialState: ->
     userKeys: null
@@ -312,6 +308,7 @@ DisturbeApp = React.createClass
     selectedTab: TAB_ENCRYPT
 
   setPrivateKey: (privateKey) ->
+    window.scrollTo 0, 0
     userKeys = nacl.crypto_box_keypair_from_raw_sk privateKey
     this.setState userKeys: userKeys
 
@@ -324,16 +321,7 @@ DisturbeApp = React.createClass
         this.setUserData response).bind(this),
       (xhr) -> alert xhr.responseText
 
-  changeTab: (tab, event) ->
-    event.stopPropagation()
-    event.preventDefault()
-    if tab != this.state.selectedTab then this.setState selectedTab: tab
-
   render: ->
-    activeIf = ((tab) ->
-      "#{if this.state.selectedTab == tab then 'active' else ''}").bind this
-    changeTabTo = ((tab) -> this.changeTab.bind(this, tab)).bind this
-
     div null,
       if this.state.userKeys?
         div null,
@@ -350,8 +338,38 @@ DisturbeApp = React.createClass
               'Spread your curve ID wide. The secret key you should
               never reveal.'
           CurveProfile userKeys: this.state.userKeys
+          CryptoTabPicker userKeys: this.state.userKeys
+      else
+        div className: 'row',
+          div className: 'col-md-8 col-md-offset-2 large-bottom',
+            h1 className: 'large-bottom', 'curvech.at'
+            GeneratePrivateKey onGenerateKey: this.setPrivateKey
+
+
+TAB_ENCRYPT = 'encrypt'
+TAB_DECRYPT = 'decrypt'
+TAB_CLOUD = 'cloud'
+
+CryptoTabPicker = React.createClass
+  getInitialState: -> selectedTab: TAB_ENCRYPT
+
+  changeTab: (tab, event) ->
+    event.stopPropagation()
+    event.preventDefault()
+    if tab != this.state.selectedTab then this.setState selectedTab: tab
+
+  render: ->
+    activeIf = ((tab) ->
+      "#{if this.state.selectedTab == tab then 'active' else ''}").bind this
+    changeTabTo = ((tab) -> this.changeTab.bind(this, tab)).bind this
+    hiddenIfNot = ((tab) ->
+      if this.state.selectedTab == tab then '' else 'hidden').bind this
+
+    div null,
+      div className: 'row',
+        div className: 'col-md-12',
           ul className: 'nav nav-tabs nav-justified', role: 'tablist',
-          style: {marginTop: '2em', marginBottom: '1.2em'},
+          style: {marginTop: '2em', marginBottom: '1.2em', width: '100%'},
             li className: activeIf(TAB_ENCRYPT),
               a href: "##{TAB_ENCRYPT}", onClick: changeTabTo(TAB_ENCRYPT),
                 i className: 'fa fa-lock nav-icon'
@@ -364,18 +382,11 @@ DisturbeApp = React.createClass
               a href: "##{TAB_CLOUD}", onClick: changeTabTo(TAB_CLOUD),
                 i className: 'fa fa-cloud nav-icon'
                 div className: 'nav-label', 'Cloud'
-          if this.state.selectedTab == TAB_ENCRYPT
-            EncryptMessage userKeys: this.state.userKeys
-          else if this.state.selectedTab == TAB_DECRYPT
-            DecryptMessage userKeys: this.state.userKeys
-      else
-        div className: 'row',
-          div className: 'col-md-8 col-md-offset-2 large-bottom',
-            h1 className: 'large-bottom', 'curvech.at'
-            GeneratePrivateKey onGenerateKey: this.setPrivateKey
-
-
-CryptoTabPicker = React.createClass
+      div className: hiddenIfNot(TAB_ENCRYPT),
+        EncryptMessage userKeys: this.props.userKeys
+      div className: hiddenIfNot(TAB_DECRYPT),
+        DecryptMessage userKeys: this.props.userKeys
+      div className: hiddenIfNot(TAB_CLOUD), ''
 
 
 KeyProfile = React.createClass
@@ -659,12 +670,12 @@ CurveProfile = React.createClass
   render: ->
     div null,
       div className: 'row',
-        div className: 'col-md-2',
+        div className: 'col-sm-2 hidden-xs',
           span className: '', href: '#',
             span className: 'text-muted', 'Fingerprint'
             div ref: 'identicon', style: {marginTop: '1em'},
             toHex nacl.crypto_hash this.props.userKeys.boxPk
-        div className: 'col-md-10',
+        div className: 'col-sm-10',
           PublicKeyField publicKey: this.props.userKeys.boxPk
           SecretKeyField secretKey: this.props.userKeys.boxSk
 
@@ -673,16 +684,14 @@ PublicKeyField = React.createClass
   getInitialState: () -> shown: false
 
   componentDidMount: () ->
-    clipboardButton = $ this.refs.clipboardButton.getDOMNode()
-    # this.zeroClipboard = new ZeroClipboard(clipboardButton)
-    # this.zeroClipboard.on 'copy', this.onCopyPublicKey
     this.renderIdenticon this.refs.identicon.getDOMNode()
 
   renderIdenticon: (elem) -> $(elem).identicon5 size: 28
 
   onCopyPublicKey: (event) ->
-    clipboard = event.clipboardData
-    clipboard.setData "text/plain", b58encode this.props.publicKey
+    inputNode = this.refs.inputPublicKey.getDOMNode()
+    inputNode.focus()
+    inputNode.setSelectionRange 0, inputNode.value.length
 
   onTweet: (event) ->
     event.preventDefault()
@@ -698,21 +707,23 @@ PublicKeyField = React.createClass
       placeholder: ''
       value: b58encode this.props.publicKey
       style: {backgroundColor: 'white', cursor: 'auto'}
+      ref: 'inputPublicKey'
+      onClick: this.onCopyPublicKey
 
     div style: {paddingBottom: '1em'},
       label className: 'control-label',
       style: {fontSize: '1.3em', marginTop: '0em'}, "Curve ID"
       div className: 'input-group input-group-lg',
-        span className: 'input-group-btn',
+        span className: 'input-group-btn hidden-sm hidden-md hidden-lg',
           button className: 'btn btn-default',
             span ref: 'identicon', toHex nacl.crypto_hash this.props.publicKey
         input inputProps
         span className: 'input-group-btn',
           button
             className: 'btn btn-default',
-            onClick: (event) -> event.preventDefault(),
+            onClick: this.onCopyPublicKey,
             ref: 'clipboardButton',
-            i className: 'fa fa-chain fa-lg'
+            i className: 'fa fa-copy fa-lg'
         span className: 'input-group-btn',
           button
             className: 'btn btn-default',
@@ -864,10 +875,10 @@ VerifyPassword = React.createClass
       div style: {marginBottom: "1em"},
         InputField
           type: 'password',
-          label: 'Check'
+          label: 'Check (optional)'
           onChange: ((password) ->
             this.setState verifyPassword: password).bind this
-          placeholder: 'Optionally retype your password'
+          placeholder: 'Retype password (optional)'
       div className: 'row',
         div className: 'col-md-12 large-bottom',
           p className: messageClass, message
@@ -896,4 +907,5 @@ InputField = React.createClass
 $ () ->
   $('#loader').hide()
   React.renderComponent DisturbeApp(), document.getElementById('app')
-`});`
+
+`});`  # end the require.js callback that wraps everything

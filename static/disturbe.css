@@ -1,27 +1,38 @@
 body {
-  margin-bottom: 20em;
+   margin-bottom: 10em;
   font-family: monospace;
+  overflow: auto;
+  overflow-y: scroll;
 }
 
 #loader {
   position: absolute;
-  width: 12em;
+  width: 14em;
   height: 50px;
   display: inline-block;
   font-size: 1.2em;
   top: 50%;
   left: 50%;
-  margin-left: -6em; /* margin is -0.5 * dimension */
+  margin-left: -7em; /* margin is -0.5 * dimension */
   margin-top: -2.5em;
+  vertical-align: middle;
 }
 
 #loader > i {
-  font-size: 1.5em;
+  margin: 0.2em;
 }
 
 input[readonly] {
   cursor: auto;
   background-color: #aaa
+}
+
+input[type="password"] {
+  font-family: sans-serif;
+}
+
+textarea {
+  resize: vertical;
 }
 
 textarea[readonly] {
@@ -81,28 +92,14 @@ p {
   width: 10em;
 }
 
-textarea {
-  resize: vertical;
-}
-
 @media (min-width: 0px) {
-  .nav-icon {
-    font-size: 2em;
-  }
-
-  .nav-label {
-    font-size: 1.2em;
-  }
+  .nav-icon { font-size: 2em; }
+  .nav-label { font-size: 1.2em; }
 }
 
 @media (min-width: 768px) {
-  .nav-icon {
-    font-size: 3.5em;
-  }
-
-  .nav-label {
-    font-size: 1.4em;
-  }
+  .nav-icon { font-size: 3.5em; }
+  .nav-label { font-size: 1.4em; }
 }
 
 .nav-justified > li {

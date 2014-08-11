@@ -15,9 +15,6 @@
     <!--       rel="stylesheet"> -->
 
     <link href="/static/disturbe.css" rel="stylesheet">
-
-    <script src="/static/components/requirejs/require.js"
-            type="text/javascript"></script>
   </head>
   <body>
     <div class="github-fork-ribbon-wrapper right">
@@ -26,7 +23,7 @@
           Fork me on GitHub</a>
       </div>
     </div>
-    <div class="container" style="margin-top: 1em">
+    <div class="container">
       <div class="row">
         <div class="col-md-10 col-md-offset-1">
           <div id="app">
@@ -36,13 +33,13 @@
     </div>
     <div id="loader">
       <i class="fa fa-cog fa-spin"></i>
-      Loading app...
+      Loading app <span id="loader-dots">...</span>
     </div>
 
+    <script src="/static/components/requirejs/require.js"
+            type="text/javascript" data-main="static/disturbe"></script>
 
     <!--
-    <script src="/static/components/jquery/dist/jquery.min.js"
-            type="text/javascript"></script>
     <script href="/static/components/bootstrap/dist/js/bootstrap.min.js"
             type="text/javascript"></script>
 
@@ -52,11 +49,6 @@
             type="text/javascript"></script>
     <script src="/static/jquery.identicon5.packed.js"
             type="text/javascript"></script>
-    <script src="/static/components/zeroclipboard/dist/ZeroClipboard.min.js"
-            type="text/javascript"></script>
-    <script type="text/javascript">
-      ZeroClipboard.config( { swfPath: "/static/components/zeroclipboard/dist/ZeroClipboard.swf" } );
-    </script>
     <script src="/static/components/bootstrap-tagsinput/dist/bootstrap-tagsinput.min.js"
             type="text/javascript"></script>
 
@@ -65,7 +57,7 @@
     <script src="/static/bs58.js" type="text/javascript"></script>
     <script src="/static/base64.js" type="text/javascript"></script>
     -->
-    <script src="/static/disturbe.js" type="text/javascript"></script>
+    <!-- <script src="/static/disturbe.js" type="text/javascript"></script> -->
 
   </body>
 </html>
