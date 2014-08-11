@@ -15,6 +15,9 @@
     <!--       rel="stylesheet"> -->
 
     <link href="/static/disturbe.css" rel="stylesheet">
+
+    <script src="/static/components/requirejs/require.js"
+            type="text/javascript"></script>
   </head>
   <body>
     <div class="github-fork-ribbon-wrapper right">
@@ -26,17 +29,23 @@
     <div class="container" style="margin-top: 1em">
       <div class="row">
         <div class="col-md-10 col-md-offset-1">
-          <div id="app"></div>
+          <div id="app">
+          </div>
         </div>
       </div>
     </div>
+    <div id="loader">
+      <i class="fa fa-cog fa-spin"></i>
+      Loading app...
+    </div>
 
+
+    <!--
     <script src="/static/components/jquery/dist/jquery.min.js"
             type="text/javascript"></script>
     <script href="/static/components/bootstrap/dist/js/bootstrap.min.js"
             type="text/javascript"></script>
-    <!-- <script href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js" -->
-    <!--       type="text/javascript"></script> -->
+
     <script src="/static/components/react/react-with-addons.js"
             type="text/javascript"></script>
     <script src="/static/components/zxcvbn/zxcvbn.js"
@@ -50,14 +59,13 @@
     </script>
     <script src="/static/components/bootstrap-tagsinput/dist/bootstrap-tagsinput.min.js"
             type="text/javascript"></script>
-    <!-- <script src="/static/components/x-editable/dist/bootstrap3-editable/js/bootstrap-editable.min.js" -->
-    <!--         type="text/javascript"></script> -->
-    <!-- <script src="//cdnjs.cloudflare.com/ajax/libs/x-editable/1.5.0/bootstrap3-editable/js/bootstrap-editable.min.js"></script> -->
 
     <script src="/static/nacl.js" type="text/javascript"></script>
     <script src="/static/scrypt.js" type="text/javascript"></script>
     <script src="/static/bs58.js" type="text/javascript"></script>
     <script src="/static/base64.js" type="text/javascript"></script>
+    -->
     <script src="/static/disturbe.js" type="text/javascript"></script>
+
   </body>
 </html>

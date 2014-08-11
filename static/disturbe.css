@@ -3,6 +3,22 @@ body {
   font-family: monospace;
 }
 
+#loader {
+  position: absolute;
+  width: 12em;
+  height: 50px;
+  display: inline-block;
+  font-size: 1.2em;
+  top: 50%;
+  left: 50%;
+  margin-left: -6em; /* margin is -0.5 * dimension */
+  margin-top: -2.5em;
+}
+
+#loader > i {
+  font-size: 1.5em;
+}
+
 input[readonly] {
   cursor: auto;
   background-color: #aaa
@@ -91,4 +107,9 @@ textarea {
 
 .nav-justified > li {
   display: table-cell;
+}
+
+.nav-justified a {
+  outline: none;
+  -moz-outline-style: none;
 }

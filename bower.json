@@ -24,6 +24,7 @@
         "moment": "latest",
         "nprogress": "latest",
         "react": "latest",
+        "requirejs": "latest",
         "x-editable": "latest",
         "zeroclipboard": "latest",
         "zxcvbn": "latest"

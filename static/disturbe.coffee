@@ -1,3 +1,37 @@
+require.config
+  baseUrl: 'static',
+  paths:
+    jquery: 'components/jquery/dist/jquery.min'
+    bootstrap: 'components/bootstrap/dist/js/bootstrap.min'
+    bootstrapTags: 'components/bootstrap-tagsinput/dist/bootstrap-tagsinput.min'
+    react: 'components/react/react-with-addons'
+    zxcvbn: 'components/zxcvbn/zxcvbn'
+    identicon5: 'jquery.identicon5.packed'
+    nacl: 'nacl'
+    scrypt: 'scrypt'
+    bs58: 'bs58'
+    base64: 'base64'
+  shim:
+    jquery:
+      deps: [],
+      exports: '$'
+    bootstrap:
+      deps: ['jquery']
+    bootstrapTags:
+      deps: ['bootstrap']
+    identicon5:
+      deps: ['jquery']
+    react:
+      deps: ['jquery'],
+      exports: 'React'
+    zxcvbn:
+      exports: 'zxcvbn'
+
+
+`require(['jquery', 'react', 'zxcvbn', 'bootstrap', 'bootstrapTags', 'identicon5',
+  'nacl', 'scrypt', 'bs58', 'base64'], function($, React, zxcvbn) {`
+
+
 {a, br, button, div, form, hr, h1, h2, h3, h4, h5, h6, i, input,
   label, li, p, option, select, span, strong, textarea, ul} = React.DOM
 
@@ -48,6 +82,7 @@ SCRYPT_P = 1
 SCRYPT_L = 32
 
 MINIMUM_PASSWORD_ENTROPY_BITS = 5
+STRONG_PASSWORD_ENTROPY_BITS = 100
 
 
 BOX_NONCE_BYTES = 24
@@ -340,6 +375,9 @@ DisturbeApp = React.createClass
             GeneratePrivateKey onGenerateKey: this.setPrivateKey
 
 
+CryptoTabPicker = React.createClass
+
+
 KeyProfile = React.createClass
   getInitialState: ->
     name: 'anonymous'
@@ -405,8 +443,8 @@ EncryptMessage = React.createClass
         div className: 'col-md-12 large-bottom',
           h3 null, 'Compose an encrypted message'
           p null,
-          'Only the owners of the public keys you specify will be
-            able to decrypt it.'
+          'Only the owners of the curve IDs you specify will be able
+            to decrypt it.'
       if not this.state.ciphertext?
         ComposeMessage userKeys: this.props.userKeys,
         onEncrypt: ((ciphertext) ->
@@ -604,10 +642,19 @@ Message = React.createClass
 
 
 CurveProfile = React.createClass
+  SIZE_COLLAPSED: 60
+  SIZE_EXPANDED: 120
+  getInitialState: ->
+    collapsed: false
+
   componentDidMount: () ->
     this.renderIdenticon this.refs.identicon.getDOMNode()
 
-  renderIdenticon: (elem) -> $(elem).identicon5 size: 120
+  renderIdenticon: (elem) ->
+    size = if this.state.collapsed then this.SIZE_COLLAPSED
+    else this.SIZE_EXPANDED
+
+    $(elem).identicon5 size: size
 
   render: ->
     div null,
@@ -615,9 +662,7 @@ CurveProfile = React.createClass
         div className: 'col-md-2',
           span className: '', href: '#',
             span className: 'text-muted', 'Fingerprint'
-            div className: 'media-object', ref: 'identicon',
-            style: {marginTop: '1em', borderStyle: 'solid', borderWidth: '0px',
-            color: '#ccc'},
+            div ref: 'identicon', style: {marginTop: '1em'},
             toHex nacl.crypto_hash this.props.userKeys.boxPk
         div className: 'col-md-10',
           PublicKeyField publicKey: this.props.userKeys.boxPk
@@ -629,8 +674,11 @@ PublicKeyField = React.createClass
 
   componentDidMount: () ->
     clipboardButton = $ this.refs.clipboardButton.getDOMNode()
-    this.zeroClipboard = new ZeroClipboard(clipboardButton)
-    this.zeroClipboard.on 'copy', this.onCopyPublicKey
+    # this.zeroClipboard = new ZeroClipboard(clipboardButton)
+    # this.zeroClipboard.on 'copy', this.onCopyPublicKey
+    this.renderIdenticon this.refs.identicon.getDOMNode()
+
+  renderIdenticon: (elem) -> $(elem).identicon5 size: 28
 
   onCopyPublicKey: (event) ->
     clipboard = event.clipboardData
@@ -655,6 +703,9 @@ PublicKeyField = React.createClass
       label className: 'control-label',
       style: {fontSize: '1.3em', marginTop: '0em'}, "Curve ID"
       div className: 'input-group input-group-lg',
+        span className: 'input-group-btn',
+          button className: 'btn btn-default',
+            span ref: 'identicon', toHex nacl.crypto_hash this.props.publicKey
         input inputProps
         span className: 'input-group-btn',
           button
@@ -712,9 +763,9 @@ SecretKeyField = React.createClass
 
 GeneratePrivateKey = React.createClass
   getInitialState: ->
-    validNewKey: false
     email: ''
     password: ''
+    validPassword: false
 
   generateKey: (event) ->
     event.preventDefault()
@@ -724,11 +775,11 @@ GeneratePrivateKey = React.createClass
     this.props.onGenerateKey? private_key
 
   render: ->
-    newIdentityButtonProps =
-      className: 'btn btn-success pull-right'
+    deriveButtonProps =
+      className: 'btn btn-lg btn-success pull-right'
       onClick: this.generateKey
-    if not this.state.validNewKey
-      newIdentityButtonProps.disabled = 'true'
+    if not this.state.validPassword
+      deriveButtonProps.disabled = 'true'
 
     div className: 'row',
       div className: 'col-md-12',
@@ -757,19 +808,17 @@ GeneratePrivateKey = React.createClass
           div className: 'row',
             div className: 'col-md-12',
             VerifyPassword {password: this.state.password,
-            onUpdate: ((valid) -> this.setState validNewKey: valid).bind(this)}
+            onUpdate: ((valid) ->
+              this.setState validPassword: valid).bind(this)}
           div className: 'form-group',
             div className: 'col-md-12 ',
-              button className: 'btn btn-lg btn-success pull-right',
-              onClick: this.generateKey, 'Derive your curve ID'
+              button deriveButtonProps, 'Derive your curve ID'
 
 
 VerifyPassword = React.createClass
-  getInitialState: () ->
-    verifyPassword: ''
+  getInitialState: () -> verifyPassword: ''
 
-  componentDidUpdate: () ->
-    this.props.onUpdate this.validPassword
+  componentDidUpdate: () -> this.props.onUpdate this.validPassword
 
   shouldComponentUpdate: (nextProps, nextState) ->
     not(nextState.verifyPassword == this.state.verifyPassword and \
@@ -779,26 +828,27 @@ VerifyPassword = React.createClass
     passwordStats = zxcvbn this.props.password
 
     this.validPassword = true
-    newKeyMessageClass = ''
-    newKeyMessage = ''
+    messageClass = ''
+    message = ''
     if passwordStats.entropy < MINIMUM_PASSWORD_ENTROPY_BITS
       this.validPassword = false
-      newKeyMessage = 'Your password is not strong enough, it must to have at' +
+      message = 'Your password is not strong enough, it must to have at' +
       " least #{MINIMUM_PASSWORD_ENTROPY_BITS} bits of entropy."
-      newKeyMessageClass = 'text-danger'
-    else if passwordStats.entropy < 110
-      newKeyMessageClass = 'text-warning'
+      messageClass = 'text-danger'
+    else if passwordStats.entropy < STRONG_PASSWORD_ENTROPY_BITS
+      messageClass = 'text-warning'
     else
-      newKeyMessageClass = 'text-success'
-    entropyClass = newKeyMessageClass + ' password-entropy'
+      messageClass = 'text-success'
+    entropyClass = messageClass + ' password-entropy'
 
-    if this.props.password != this.state.verifyPassword
-      if newKeyMessage == ''
+    if this.state.verifyPassword.length > 0 and
+       this.props.password != this.state.verifyPassword
+      if message == ''
         this.validPassword = false
-        newKeyMessageClass = 'text-danger'
-        newKeyMessage = 'Passwords do not match.'
-    else if newKeyMessage == ''
-      newKeyMessage = 'Everything is OK'
+        messageClass = 'text-danger'
+        message = 'Passwords do not match.'
+    else if message == ''
+      message = 'Everything is OK'
 
     div null,
       div className: 'row',
@@ -820,7 +870,7 @@ VerifyPassword = React.createClass
           placeholder: 'Optionally retype your password'
       div className: 'row',
         div className: 'col-md-12 large-bottom',
-          p className: newKeyMessageClass, newKeyMessage
+          p className: messageClass, message
 
 
 InputField = React.createClass
@@ -843,4 +893,7 @@ InputField = React.createClass
         input inputProps
 
 
-$ () -> React.renderComponent DisturbeApp(), document.getElementById('app')
+$ () ->
+  $('#loader').hide()
+  React.renderComponent DisturbeApp(), document.getElementById('app')
+`});`
