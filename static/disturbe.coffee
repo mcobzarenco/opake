@@ -1,41 +1,50 @@
 require.config
   baseUrl: 'static',
   paths:
-    jquery: 'components/jquery/dist/jquery.min'
+    base64: 'base64'
     bootstrap: 'components/bootstrap/dist/js/bootstrap.min'
     bootstrapTags: 'components/bootstrap-tagsinput/dist/bootstrap-tagsinput.min'
-    react: 'components/react/react-with-addons'
-    zxcvbn: 'components/zxcvbn/zxcvbn'
-    identicon5: 'jquery.identicon5.packed'
-    nacl: 'nacl'
-    scrypt: 'scrypt'
     bs58: 'bs58'
-    base64: 'base64'
+    bytebuffer: 'components/bytebuffer/dist/ByteBufferAB.min'
+    identicon5: 'jquery.identicon5.packed'
+    jquery: 'components/jquery/dist/jquery.min'
+    'Math/Long': 'components/long/dist/Long.min'
+    nacl: 'nacl'
+    ProtoBuf: 'components/protobuf/dist/ProtoBuf.min'
+    react: 'components/react/react-with-addons'
+    scrypt: 'scrypt'
+    zxcvbn: 'components/zxcvbn/zxcvbn'
   shim:
-    jquery:
-      deps: [],
-      exports: '$'
     bootstrap:
       deps: ['jquery']
     bootstrapTags:
       deps: ['bootstrap']
+    bops:
+      exports: 'bops'
+    bytebuffer:
+      deps: ['Math/Long']
     identicon5:
       deps: ['jquery']
+    jquery:
+      deps: []
+      exports: '$'
+    ProtoBuf:
+      deps: ['bytebuffer', 'Math/Long']
+      exports: 'ProtoBuf'
     react:
-      deps: ['jquery'],
+       deps: ['jquery']
       exports: 'React'
     zxcvbn:
       exports: 'zxcvbn'
     waitSeconds: 0
 
 
-`require(['jquery', 'react', 'zxcvbn', 'bootstrap', 'bootstrapTags', 'identicon5',
-  'nacl', 'scrypt', 'bs58', 'base64'], function($, React, zxcvbn) {`
-
+`require(['jquery', 'react', 'ProtoBuf', 'zxcvbn', 'bootstrap',
+  'bootstrapTags', 'identicon5', 'nacl', 'scrypt', 'bs58', 'base64'],
+  function($, React, ProtoBuf, zxcvbn) {`
 
 {a, br, button, div, form, hr, h1, h2, h3, h4, h5, h6, i, input,
   label, li, p, option, select, span, strong, textarea, ul} = React.DOM
-
 
 ### Json CurveCP Protocol Constants ###
 
@@ -82,7 +91,7 @@ SCRYPT_R = 8
 SCRYPT_P = 1
 SCRYPT_L = 32
 
-MINIMUM_PASSWORD_ENTROPY_BITS = 5
+MINIMUM_PASSWORD_ENTROPY_BITS = 0
 STRONG_PASSWORD_ENTROPY_BITS = 100
 
 
@@ -90,9 +99,27 @@ BOX_NONCE_BYTES = 24
 KEY_BASE64_BYTES = 44
 
 
+DISTURBE_PROTO = "
+package disturbe;
+
+message File {
+  optional string name = 1;
+  optional bytes contents = 2;
+}
+
+message Message {
+  optional string text = 1;
+  optional bytes sender = 2;
+  repeated File files = 3;
+}
+"
+
 nacl = nacl_factory.instantiate()
 scrypt = scrypt_module_factory()
 {encode_utf8, decode_utf8} = nacl
+
+
+disturbePb = ProtoBuf.loadProto(DISTURBE_PROTO).build 'disturbe'
 
 # $.fn.editable.defaults.mode = 'inline';
 
@@ -296,9 +323,29 @@ decryptMessage = (userKeys, cipherText) ->
   messageNonce = b64decode messageInfo[MESSAGE_INFO_NONCE_FIELD]
 
   plaintext =
-    sender: b58encode senderPublicKey
+    sender: senderPublicKey
     message: nacl.crypto_secretbox_open(
       b64decode(cipher[CIPHER_MESSAGE_FIELD]), messageNonce, messageKey)
+
+
+bytesToSize = (bytes, precision = 1) ->
+  kilobyte = 1024
+  megabyte = kilobyte * 1024
+  gigabyte = megabyte * 1024
+  terabyte = gigabyte * 1024
+
+  if bytes >= 0 and bytes < kilobyte
+    bytes + ' B'
+  else if bytes >= kilobyte and bytes < megabyte
+    (bytes / kilobyte).toFixed(precision) + ' KiB'
+  else if bytes >= megabyte and bytes < gigabyte
+    (bytes / megabyte).toFixed(precision) + ' MiB'
+  else if bytes >= gigabyte and bytes < terabyte
+    (bytes / gigabyte).toFixed(precision) + ' GiB'
+  else if bytes >= terabyte
+    (bytes / terabyte).toFixed(precision) + ' TiB'
+  else
+    bytes + ' B'
 
 
 DisturbeApp = React.createClass
@@ -474,6 +521,7 @@ ComposeMessage = React.createClass
   getInitialState: () ->
     recipients: []
     message: ''
+    files: []
 
   getInvalidRecipientKeys: () ->
     invalid = []
@@ -513,6 +561,8 @@ ComposeMessage = React.createClass
     innerInput.addClass 'form-control'
     innerInput.css width: ''
 
+    $(this.refs.inputFiles.getDOMNode()).on 'change', this.updateFiles
+
   changeMessage: (event) -> this.setState message: event.target.value
 
   encryptMessage: (event) ->
@@ -523,11 +573,36 @@ ComposeMessage = React.createClass
         b58decode key
     try
       if this.props.onEncrypt?
-        ciphertext = encryptMessage(
-          this.props.userKeys, recipientKeys, this.state.message)
-        this.props.onEncrypt ciphertext
+        message = new disturbePb.Message text: this.state.message
+        message.files = []
+        for file in this.state.files
+          fileReader = new FileReader()
+          fileReader.onloadend = ((file, reader) ->
+            message.files.push
+              name: file.name
+              contents: reader.result
+
+            if message.files.length == this.state.files.length
+              try
+                plaintext = new Uint8Array message.toArrayBuffer()
+                ciphertext = encryptMessage(
+                  this.props.userKeys, recipientKeys, plaintext)
+                this.props.onEncrypt ciphertext
+              catch error
+                console.log error
+          ).bind(this, file, fileReader)
+          fileReader.readAsArrayBuffer file
     catch error
       console.log error
+
+  updateFiles: (event) ->
+    # fileReader = new FileReader()
+    # fileReader.onloadend = (() ->
+    #   this.setState message: fileReader.result).bind this
+    files = this.state.files.slice 0
+    for file in event.target.files then files.push file
+    this.setState files: files
+#      fileReader.readAsText f
 
   render: ->
     error = null
@@ -540,7 +615,7 @@ ComposeMessage = React.createClass
         error = "#{invalidJoined} are not valid curve IDs"
 
     encryptButtonProps =
-      className: 'btn btn-lg btn-default'
+      className: 'btn btn-lg btn-success'
       onClick: this.encryptMessage
     if error? or this.state.recipients.length == 0
       encryptButtonProps.disabled = 'true'
@@ -562,12 +637,35 @@ ComposeMessage = React.createClass
             textarea className: 'form-control', value: this.state.message,
             placeholder: 'Type your message..', onChange: this.changeMessage,
             rows: 10
-        div className: 'row',
+        if this.state.files.length > 0
+          div className: 'form-group',
+            div className: 'col-md-12',
+              for file in this.state.files
+                span className: 'label label-default attached-file',
+                  span null, file.name
+                  span null, " [#{bytesToSize file.size}] "
+                  i className: 'fa fa-fw fa-lg fa-times dismiss-icon',
+                  onClick: ((file) ->
+                    files = this.state.files.slice 0
+                    index = files.indexOf file
+                    files.splice index, 1
+                    this.setState files: files
+                  ).bind(this, file)
+        div className: 'form-group',
           div className: 'col-md-12 large-bottom',
+            input style: {display: 'none'}, type: 'file', ref: 'inputFiles',
+            multiple: 'true'
+            a className: 'control-label', style: {cursor: 'pointer'},
+            onClick: ((event) ->
+              event.preventDefault()
+              $(this.refs.inputFiles.getDOMNode()).trigger 'click'
+              ).bind(this),
+              i className: 'fa fa-fw fa-lg fa-plus'
+              'Add files'
             div className: 'pull-right',
               button encryptButtonProps,
-                i className: 'fa fa-fw fa-lg fa-lock'
-                span null, 'Encrypt'
+                  i className: 'fa fa-fw fa-lock'
+                  span null, 'Encrypt'
 
 
 CipherTextarea = React.createClass
@@ -585,7 +683,7 @@ DecryptMessage = React.createClass
   getInitialState: () ->
     ciphertext: ''
     error: null
-    plaintext: null
+    message: null
 
   clear: -> this.setState this.getInitialState()
 
@@ -595,8 +693,9 @@ DecryptMessage = React.createClass
     event.preventDefault()
     try
       plaintext = decryptMessage this.props.userKeys, this.state.ciphertext
-      plaintext.message = decode_utf8 plaintext.message
-      this.setState plaintext: plaintext
+      message = disturbePb.Message.decode plaintext.message
+      message.sender = plaintext.sender
+      this.setState message: message
     catch error
       this.setState error: error.toString()
       console.log error
@@ -607,8 +706,9 @@ DecryptMessage = React.createClass
         div className: 'col-md-12 large-bottom',
           h3 null, 'Decrypt a message'
           p null,
-          'You can only decrypt a message that was encrypted for your curve ID.'
-      if not this.state.plaintext?
+          'You can only decrypt a message that was encrypted for your
+          curve ID.'
+      if not this.state.message?
         form className: 'form-horizontal',
           if this.state.error?
             div className: 'form-group',
@@ -622,13 +722,13 @@ DecryptMessage = React.createClass
               onChange: this.changeCiphertext, rows: 10
           div className: 'row',
             div className: 'col-md-12 large-bottom',
-              button className:'btn btn-lg btn-default pull-right',
+              button className:'btn btn-lg btn-success pull-right',
               onClick: this.decryptMessage,
                 i className: 'fa fa-fw fa-lg fa-unlock-alt'
                 span null,  'Decrypt'
       else
         div null,
-          Message message: this.state.plaintext
+          MessageView message: this.state.message
           div className: 'row',
             div className: 'col-md-12',
               p null, 'Decrypt ',
@@ -636,20 +736,34 @@ DecryptMessage = React.createClass
                 'another message'
 
 
-Message = React.createClass
+MessageView = React.createClass
   render: ->
     form className: 'form-horizontal',
       div className: 'form-group',
         div className: 'col-xs-12', style: {display:'inline-block'},
           label className: 'control-label', 'From'
-          input className: 'form-control', value: this.props.message.sender,
-          readOnly: true, style: {backgroundColor: 'white', cursor: 'auto'}
+          input className: 'form-control',
+          value: b58encode this.props.message.sender, readOnly: true,
+          style: {backgroundColor: 'white', cursor: 'auto'}
       div className: 'form-group',
         div className: 'col-xs-12', style: {display:'inline-block'},
           label className: 'control-label', 'Message'
-          textarea className: 'form-control', value: this.props.message.message,
+          textarea className: 'form-control', value: this.props.message.text,
           readOnly: true, rows: 10,
           style: {backgroundColor: 'white', cursor: 'auto'}
+      div className: 'form-group',
+        div className: 'col-md-12',
+          for file in this.props.message.files
+            {buffer, offset, limit} = file.contents
+            blob = new Blob [buffer.slice(offset, limit)]
+            url = (window.webkitURL || window.URL).createObjectURL blob
+            span className: 'label label-default attached-file',
+              span null, file.name
+              span null, " [#{bytesToSize limit - offset}] "
+              a href: url, download: file.name,
+                i className: 'fa fa-fw fa-lg fa-download dismiss-icon',
+              onClick: ((file) ->
+              ).bind(this, file)
 
 
 CurveProfile = React.createClass

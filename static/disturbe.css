@@ -8,13 +8,13 @@ body {
 #loader {
   position: absolute;
   width: 14em;
-  height: 50px;
+  height: 4em;
   display: inline-block;
   font-size: 1.2em;
   top: 50%;
   left: 50%;
   margin-left: -7em; /* margin is -0.5 * dimension */
-  margin-top: -2.5em;
+  margin-top: -2em;
   vertical-align: middle;
 }
 
@@ -109,4 +109,22 @@ p {
 .nav-justified a {
   outline: none;
   -moz-outline-style: none;
+}
+
+.dismiss-icon {
+  color: white;
+}
+
+.dismiss-icon:hover {
+  cursor: pointer;
+  color: #444;
+}
+
+.attached-file {
+  display: inline-block;
+  font-size: 1em;
+  padding-top: 0.4em;
+  padding-bottom: 0.4em;
+  margin-right: 1em;
+  margin-bottom: .6em;
 }
