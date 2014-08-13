@@ -8,7 +8,7 @@ require.config
     bytebuffer: 'components/bytebuffer/dist/ByteBufferAB.min'
     identicon5: 'jquery.identicon5.packed'
     jquery: 'components/jquery/dist/jquery.min'
-    'Math/Long': 'components/long/dist/Long.min'
+    Long: 'components/long/dist/Long.min'
     nacl: 'nacl'
     ProtoBuf: 'components/protobuf/dist/ProtoBuf.min'
     react: 'components/react/react-with-addons'
@@ -22,14 +22,14 @@ require.config
     bops:
       exports: 'bops'
     bytebuffer:
-      deps: ['Math/Long']
+      deps: ['Long']
     identicon5:
       deps: ['jquery']
     jquery:
       deps: []
       exports: '$'
     ProtoBuf:
-      deps: ['bytebuffer', 'Math/Long']
+      deps: ['bytebuffer', 'Long']
       exports: 'ProtoBuf'
     react:
        deps: ['jquery']
