@@ -1,0 +1,22 @@
+{
+  "name": "disturbe",
+  "version": "0.1.0",
+  "description": "Zero knowledge messaging with end to end crypto.",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mcobzarenco/disturbe.git"
+  },
+  "author": "Marius Cobzarenco",
+  "readmeFilename": "README.md",
+  "gitHead": "1a9bda2f4254fe999ce8655174a0b52090de5d45",
+  "devDependencies": {
+    "grunt-contrib-coffee": "~0.11.0",
+    "grunt-contrib-uglify": "~0.5.1",
+    "grunt-requirejs": "~0.4.2",
+    "grunt-contrib-cssmin": "~0.10.0",
+    "grunt-contrib-copy": "~0.5.0"
+  }
+}

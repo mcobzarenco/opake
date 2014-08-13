@@ -34,7 +34,8 @@ DEFAULT_WORKERS = 4
 DEFAULT_COOKIE_PREFIX = 'cookie:'
 DEFAULT_MINUTE_KEY_EXPIRY_SECS = 30
 
-DISTURBE_INDEX = 'disturbe.html'
+DIST_INDEX = 'dist.html'
+DEBUG_INDEX = 'debug.html'
 
 CURVE25519_KEY_BYTES = 32
 SERVER_PUBLIC_KEY = 'kC_rSIO7t1ryhux1sn_LrtTrLyVZNd08BCXnSHQjgmA='
@@ -257,8 +258,13 @@ def check_exact_length(value, value_name, expected_len):
 
 @route('/')
 @route('/static/<filepath:path>')
-def server_static(filepath=DISTURBE_INDEX):
+def server_static(filepath=DIST_INDEX):
     return static_file(filepath, root='static/')
+
+
+@route('/debug')
+def debug_version():
+    return static_file(DEBUG_INDEX, root='static/')
 
 
 @route('/handshake/hello', method='POST')
