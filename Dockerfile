@@ -15,8 +15,7 @@ RUN apt-get update && \
 RUN apt-add-repository -y ppa:chris-lea/node.js && \
     apt-get update && \
     apt-get install -y nodejs
-RUN npm install -g coffee-script
-RUN npm install -g bower
+RUN npm install -g bower coffee-script grunt-cli
 
 # Install libsodium from source
 RUN git clone https://github.com/jedisct1/libsodium.git
@@ -27,15 +26,14 @@ RUN git clone https://github.com/pyca/pynacl.git
 RUN cd pynacl && python setup.py install
 
 # Install disturbe
-RUN pip install bottle jsonschema gevent gunicorn redis riak
-RUN ldconfig
+RUN pip install bottle jsonschema gevent gunicorn redis riak && ldconfig
 RUN mkdir disturbe
 ADD . /src/disturbe
 RUN rm -rf disturbe/static/components
-RUN cd disturbe && bower --allow-root install
-RUN cd disturbe/static && coffee -c disturbe.coffee
+WORKDIR /src/disturbe
+RUN npm install
+RUN bower --allow-root install
+RUN grunt -v
 
 VOLUME ["/src/disturbe"]
-WORKDIR /src/disturbe
-
 ENTRYPOINT ["./disturbe-app.py"]
