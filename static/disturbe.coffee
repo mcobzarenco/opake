@@ -565,6 +565,15 @@ ComposeMessage = React.createClass
 
   changeMessage: (event) -> this.setState message: event.target.value
 
+  encryptBinary: (recipientKeys, plaintext) ->
+    try
+      ciphertext = encryptMessage(
+        this.props.userKeys, recipientKeys, plaintext)
+      this.props.onEncrypt ciphertext
+      ciphertext
+    catch error
+      console.log error
+
   encryptMessage: (event) ->
     event.preventDefault()
     recipientNode = $(this.refs.recipients.getDOMNode())
@@ -575,21 +584,18 @@ ComposeMessage = React.createClass
       if this.props.onEncrypt?
         message = new disturbePb.Message text: this.state.message
         message.files = []
+        if this.state.files.length == 0
+          this.encryptBinary(recipientKeys,
+            new Uint8Array message.toArrayBuffer())
         for file in this.state.files
           fileReader = new FileReader()
           fileReader.onloadend = ((file, reader) ->
             message.files.push
               name: file.name
               contents: reader.result
-
             if message.files.length == this.state.files.length
-              try
-                plaintext = new Uint8Array message.toArrayBuffer()
-                ciphertext = encryptMessage(
-                  this.props.userKeys, recipientKeys, plaintext)
-                this.props.onEncrypt ciphertext
-              catch error
-                console.log error
+              this.encryptBinary(recipientKeys,
+                new Uint8Array message.toArrayBuffer())
           ).bind(this, file, fileReader)
           fileReader.readAsArrayBuffer file
     catch error

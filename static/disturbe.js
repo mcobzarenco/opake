@@ -726,6 +726,17 @@ ComposeMessage = React.createClass({
       message: event.target.value
     });
   },
+  encryptBinary: function(recipientKeys, plaintext) {
+    var ciphertext, error;
+    try {
+      ciphertext = encryptMessage(this.props.userKeys, recipientKeys, plaintext);
+      this.props.onEncrypt(ciphertext);
+      return ciphertext;
+    } catch (_error) {
+      error = _error;
+      return console.log(error);
+    }
+  },
   encryptMessage: function(event) {
     var error, file, fileReader, key, message, recipientKeys, recipientNode, _i, _len, _ref1, _results;
     event.preventDefault();
@@ -746,26 +757,21 @@ ComposeMessage = React.createClass({
           text: this.state.message
         });
         message.files = [];
+        if (this.state.files.length === 0) {
+          this.encryptBinary(recipientKeys, new Uint8Array(message.toArrayBuffer()));
+        }
         _ref1 = this.state.files;
         _results = [];
         for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
           file = _ref1[_i];
           fileReader = new FileReader();
           fileReader.onloadend = (function(file, reader) {
-            var ciphertext, error, plaintext;
             message.files.push({
               name: file.name,
               contents: reader.result
             });
             if (message.files.length === this.state.files.length) {
-              try {
-                plaintext = new Uint8Array(message.toArrayBuffer());
-                ciphertext = encryptMessage(this.props.userKeys, recipientKeys, plaintext);
-                return this.props.onEncrypt(ciphertext);
-              } catch (_error) {
-                error = _error;
-                return console.log(error);
-              }
+              return this.encryptBinary(recipientKeys, new Uint8Array(message.toArrayBuffer()));
             }
           }).bind(this, file, fileReader);
           _results.push(fileReader.readAsArrayBuffer(file));
