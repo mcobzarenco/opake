@@ -91,8 +91,8 @@ SCRYPT_R = 8
 SCRYPT_P = 1
 SCRYPT_L = 32
 
-MINIMUM_PASSWORD_ENTROPY_BITS = 0
-STRONG_PASSWORD_ENTROPY_BITS = 100
+MINIMUM_PASSWORD_ENTROPY_BITS = 40
+STRONG_PASSWORD_ENTROPY_BITS = 90
 
 
 BOX_NONCE_BYTES = 24
@@ -296,6 +296,7 @@ encryptMessage = (senderKeys, recipientPublicKeys, message) ->
 
 decryptMessage = (userKeys, cipherText) ->
   GENERIC_ERROR = 'Could not decrypt message.'
+
   cipher = JSON.parse cipherText
 
   transientPublicKey = b58decode cipher[CIPHER_TRANSIENT_PKEY_FIELD]
@@ -509,7 +510,8 @@ EncryptMessage = React.createClass
           this.setState ciphertext: ciphertext).bind this
       else
         div null,
-          CipherTextarea ciphertext: this.state.ciphertext
+          CiphertextArea ciphertext: this.state.ciphertext
+          hr null
           div className: 'row',
               div className: 'col-md-12',
                 p null, 'Compose a ',
@@ -563,6 +565,11 @@ ComposeMessage = React.createClass
 
     $(this.refs.inputFiles.getDOMNode()).on 'change', this.updateFiles
 
+  updateFiles: (event) ->
+    files = this.state.files.slice 0
+    for file in event.target.files then files.push file
+    this.setState files: files
+
   changeMessage: (event) -> this.setState message: event.target.value
 
   encryptBinary: (recipientKeys, plaintext) ->
@@ -600,15 +607,6 @@ ComposeMessage = React.createClass
           fileReader.readAsArrayBuffer file
     catch error
       console.log error
-
-  updateFiles: (event) ->
-    # fileReader = new FileReader()
-    # fileReader.onloadend = (() ->
-    #   this.setState message: fileReader.result).bind this
-    files = this.state.files.slice 0
-    for file in event.target.files then files.push file
-    this.setState files: files
-#      fileReader.readAsText f
 
   render: ->
     error = null
@@ -663,8 +661,8 @@ ComposeMessage = React.createClass
             multiple: 'true'
             a className: 'control-label', style: {cursor: 'pointer'},
             onClick: ((event) ->
-              event.preventDefault()
-              $(this.refs.inputFiles.getDOMNode()).trigger 'click'
+                event.preventDefault()
+                $(this.refs.inputFiles.getDOMNode()).trigger 'click'
               ).bind(this),
               i className: 'fa fa-fw fa-lg fa-plus'
               'Add files'
@@ -674,18 +672,62 @@ ComposeMessage = React.createClass
                   span null, 'Encrypt'
 
 
-CipherTextarea = React.createClass
+CiphertextArea = React.createClass
+  MAX_CIPHER_LENGTH: 50 * 1024
+
+  selectCiphertext: (event) ->
+    event.preventDefault()
+    ciphertext = this.refs.ciphertext.getDOMNode()
+    ciphertext.focus()
+    ciphertext.setSelectionRange 0, ciphertext.value.length
+
+  isCipherDisplayable: () ->
+    this.props.ciphertext.length < this.MAX_CIPHER_LENGTH
+
   render: ->
+    blob = new Blob [this.props.ciphertext]
+    downloadUrl = (window.webkitURL || window.URL).createObjectURL blob
+
+    cx = React.addons.classSet
+    copyButtonProps =
+      className: 'btn btn-default',
+      onClick: this.selectCiphertext,
+    if not this.isCipherDisplayable() then copyButtonProps.disabled = 'true'
+
+    textareaValue = '<< The encrypted message is too large to be
+    displayed inline >>'
+    if this.isCipherDisplayable() then textareaValue = this.props.ciphertext
+
     form className: 'form-horizontal',
-      div className: 'form-group large-bottom',
+      div className: 'form-group share-cipher-bar',
+        div className: 'col-xs-12',
+          label className: 'control-label', 'Share'
+          div null,
+            button copyButtonProps,
+              i className: 'fa fa-copy fa-lg fa-fw'
+              'Copy'
+            a className: 'btn btn-default', href: downloadUrl,
+            download: 'message.cipher',
+            onClick: this.downloadCiphertext,
+              i className: 'fa fa-download fa-lg fa-fw'
+              'Download'
+            # button className: 'btn btn-default',
+            #   i className: 'fa fa-link fa-lg fa-fw'
+            #   'Create link'
+            # span className: 'help-block', 'NOTE: By creating a link
+            # the encrypted message will public.'
+      div className: 'form-group',
         div className: 'col-xs-12', style: {display:'inline-block'},
-          label className: 'control-label', 'Scrambled message'
-          textarea className: 'form-control', value: this.props.ciphertext,
-          placeholder: 'Type your message..', readOnly: true, rows: 10,
+          label className: 'control-label', 'Encrypted message'
+          textarea className: 'form-control', ref: 'ciphertext',
+          value: textareaValue, readOnly: true, rows: 5,
           style: {backgroundColor: 'white', cursor: 'auto'}
 
 
 DecryptMessage = React.createClass
+  FORMAT_ERROR: 'The message is not valid.'
+  CRYPTO_ERROR: 'The message could not be decrypted.'
+
   getInitialState: () ->
     ciphertext: ''
     error: null
@@ -695,16 +737,23 @@ DecryptMessage = React.createClass
 
   changeCiphertext: (event) -> this.setState ciphertext: event.target.value
 
-  decryptMessage: (event) ->
-    event.preventDefault()
+  decryptFile: (files) ->
+    fileReader = new FileReader()
+    fileReader.onloadend = (() ->
+      console.log fileReader
+      this.decryptMessage fileReader.result
+    ).bind this
+    fileReader.readAsText files[0]
+
+  decryptMessage: (ciphertext) ->
     try
-      plaintext = decryptMessage this.props.userKeys, this.state.ciphertext
+      plaintext = decryptMessage this.props.userKeys, ciphertext
       message = disturbePb.Message.decode plaintext.message
       message.sender = plaintext.sender
       this.setState message: message
     catch error
-      this.setState error: error.toString()
       console.log error
+      this.setState error: this.CRYPTO_ERROR
 
   render: ->
     div null,
@@ -721,17 +770,31 @@ DecryptMessage = React.createClass
               div className: 'col-xs-12',
                 span className: 'text-danger', this.state.error
           div className: 'form-group',
-            div className: 'col-xs-12', style: {display:'inline-block'},
-              label className: 'control-label', 'Scrambled message'
+            div className: 'col-xs-12',
+              label className: 'control-label', 'From file'
+              div null,
+                FileSelect onChange: this.decryptFile, ref: 'cipherFile'
+                button className:'btn btn-default',
+                onClick: ((event) ->
+                    event.preventDefault()
+                    this.refs.cipherFile.selectFiles()
+                  ).bind(this),
+                  i className: 'fa fa-fw fa-lg fa-unlock-alt'
+                  span null, 'Choose file'
+          div className: 'form-group',
+            div className: 'col-xs-12',
+              label className: 'control-label', 'From encrypted message'
               textarea className: 'form-control', value: this.state.message,
-              placeholder: 'Copy paste the scrambled message',
-              onChange: this.changeCiphertext, rows: 10
+              placeholder: 'Copy paste the encrypted message..',
+              onChange: this.changeCiphertext, rows: 5
           div className: 'row',
             div className: 'col-md-12 large-bottom',
-              button className:'btn btn-lg btn-success pull-right',
-              onClick: this.decryptMessage,
+              button className:'btn btn-default',
+              onClick: ((event) ->
+                  event.preventDefault()
+                  this.decryptMessage(this.state.ciphertext)).bind(this),
                 i className: 'fa fa-fw fa-lg fa-unlock-alt'
-                span null,  'Decrypt'
+                span null, 'Decrypt'
       else
         div null,
           MessageView message: this.state.message
@@ -768,8 +831,21 @@ MessageView = React.createClass
               span null, " [#{bytesToSize limit - offset}] "
               a href: url, download: file.name,
                 i className: 'fa fa-fw fa-lg fa-download dismiss-icon',
-              onClick: ((file) ->
-              ).bind(this, file)
+
+
+FileSelect = React.createClass
+  componentDidMount: () ->
+    if this.props.onChange?
+      $(this.refs.inputFiles.getDOMNode()).on 'change', ((event) ->
+        this.props.onChange event.target.files).bind this
+
+  selectFiles: () -> $(this.refs.inputFiles.getDOMNode()).trigger 'click'
+
+  render: ->
+    # multiple = this.props.multiple
+    # if not multiple?
+    #   multiple
+    input style: {display: 'none'}, type: 'file',  ref: 'inputFiles'
 
 
 CurveProfile = React.createClass
@@ -809,6 +885,7 @@ PublicKeyField = React.createClass
   renderIdenticon: (elem) -> $(elem).identicon5 size: 28
 
   onCopyPublicKey: (event) ->
+    event.preventDefault()
     inputNode = this.refs.inputPublicKey.getDOMNode()
     inputNode.focus()
     inputNode.setSelectionRange 0, inputNode.value.length
