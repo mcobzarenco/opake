@@ -527,18 +527,22 @@ EncryptMessage = React.createClass
 
   render: ->
     div null,
-      div className: 'row',
-        div className: 'col-md-12 large-bottom',
-          h3 null, 'Compose an encrypted message'
-          p null,
-          'Only the owners of the curve IDs you specify will be able
-            to decrypt it.'
       if not this.state.ciphertext?
-        ComposeMessage userKeys: this.props.userKeys,
-        onEncrypt: ((ciphertext) ->
-          this.setState ciphertext: ciphertext).bind this
+        div null,
+          div className: 'row',
+            div className: 'col-md-12 large-bottom',
+              h3 null, 'Compose an encrypted message'
+              p null,
+              'Only the owners of the curve IDs you specify will be able
+                to decrypt it.'
+          ComposeMessage userKeys: this.props.userKeys,
+          onEncrypt: ((ciphertext) ->
+            this.setState ciphertext: ciphertext).bind this
       else
         div null,
+          div className: 'row',
+            div className: 'col-md-12 large-bottom',
+              h3 null, 'Encrypted message'
           CiphertextArea ciphertext: this.state.ciphertext
           hr null
           div className: 'row',
@@ -806,15 +810,15 @@ DecryptMessage = React.createClass
           div className: 'form-group',
             div className: 'col-xs-12',
               label className: 'control-label', 'From file'
-              div null,
+              div style: {marginTop: '.5em'},
                 FileSelect onChange: this.decryptFile, ref: 'cipherFile'
-                button className:'btn btn-default',
+                button className:'btn btn-success', style: {width: '12em'},
                 onClick: ((event) ->
                     event.preventDefault()
                     this.refs.cipherFile.selectFiles()
                   ).bind(this),
-                  i className: 'fa fa-fw fa-lg fa-unlock-alt'
-                  span null, 'Choose file'
+                  i className: 'fa fa-fw fa-lg fa-file-o'
+                  span null, 'Decrypt a file'
           div className: 'form-group',
             div className: 'col-xs-12',
               label className: 'control-label', 'From encrypted message'
@@ -823,12 +827,12 @@ DecryptMessage = React.createClass
               onChange: this.changeCiphertext, rows: 5
           div className: 'row',
             div className: 'col-md-12 large-bottom',
-              button className:'btn btn-default',
+              button className:'btn btn-success',  style: {width: '12em'},
               onClick: ((event) ->
                   event.preventDefault()
                   this.decryptMessage(this.state.ciphertext)).bind(this),
                 i className: 'fa fa-fw fa-lg fa-unlock-alt'
-                span null, 'Decrypt'
+                span null, 'Decrypt text'
       else
         div null,
           MessageView message: this.state.message
