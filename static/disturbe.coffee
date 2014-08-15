@@ -10,6 +10,7 @@ require.config
     jquery: 'components/jquery/dist/jquery'
     Long: 'components/long/dist/Long'
     nacl: 'nacl'
+    tweetnacl: 'components/tweetnacl/nacl'
     ProtoBuf: 'components/protobuf/dist/ProtoBuf'
     react: 'components/react/react-with-addons'
     scrypt: 'scrypt'
@@ -34,14 +35,16 @@ require.config
     react:
        deps: ['jquery']
       exports: 'React'
+    tweetnacl:
+      exports: 'nacl'
     zxcvbn:
       exports: 'zxcvbn'
     waitSeconds: 0
 
 
-`require(['jquery', 'react', 'ProtoBuf', 'zxcvbn', 'bootstrap',
-  'bootstrapTags', 'identicon5', 'nacl', 'scrypt', 'bs58', 'base64'],
-  function($, React, ProtoBuf, zxcvbn) {`
+`require(['jquery', 'react', 'ProtoBuf', 'tweetnacl', 'zxcvbn', 'bootstrap',
+  'bootstrapTags', 'identicon5', 'scrypt', 'bs58', 'base64'],
+  function($, React, ProtoBuf, nacl, zxcvbn) {`
 
 {a, br, button, div, form, hr, h1, h2, h3, h4, h5, h6, i, input,
   label, li, p, option, select, span, strong, textarea, ul} = React.DOM
@@ -91,7 +94,7 @@ SCRYPT_R = 8
 SCRYPT_P = 1
 SCRYPT_L = 32
 
-MINIMUM_PASSWORD_ENTROPY_BITS = 40
+MINIMUM_PASSWORD_ENTROPY_BITS = 0
 STRONG_PASSWORD_ENTROPY_BITS = 90
 
 
@@ -114,9 +117,9 @@ message Message {
 }
 "
 
-nacl = nacl_factory.instantiate()
+# nacl = nacl_factory.instantiate()
 scrypt = scrypt_module_factory()
-{encode_utf8, decode_utf8} = nacl
+{encodeUTF8, decodeUTF8} = nacl.util
 
 
 disturbePb = ProtoBuf.loadProto(DISTURBE_PROTO).build 'disturbe'
@@ -125,8 +128,8 @@ disturbePb = ProtoBuf.loadProto(DISTURBE_PROTO).build 'disturbe'
 
 
 credentialsToSecretKey = (email, password) ->
-  password_hash = nacl.crypto_hash_string password
-  scrypt.crypto_scrypt(password_hash, encode_utf8(email),
+  password_hash = nacl.hash decodeUTF8 password
+  scrypt.crypto_scrypt(password_hash, decodeUTF8(email),
     SCRYPT_N, SCRYPT_R, SCRYPT_P, SCRYPT_L)
 
 
@@ -163,11 +166,11 @@ sendHello = (transientKeys, success, error) ->
   serverPublicKey = b64decode SERVER_PUBLIC_KEY
   zeros = new Uint8Array(HELLO_PADDING_BYTES)
   nonce = nacl.crypto_box_random_nonce()
-  zerosBox = nacl.crypto_box zeros, nonce, serverPublicKey, transientKeys.boxSk
+  zerosBox = nacl.crypto_box zeros, nonce, serverPublicKey, transientKeys.secretKey
   noncedZerosBox = concatBuffers nonce, zerosBox
 
   payload = {}
-  payload[HELLO_CLIENT_TRANSIENT_PKEY_FIELD] = b64encode transientKeys.boxPk
+  payload[HELLO_CLIENT_TRANSIENT_PKEY_FIELD] = b64encode transientKeys.publicKey
   payload[HELLO_PADDING_FIELD] = b64encode new Uint8Array(HELLO_PADDING_BYTES)
   payload[HELLO_ZEROS_BOX_FIELD] = b64encode noncedZerosBox
   $.ajax
@@ -181,8 +184,8 @@ sendHello = (transientKeys, success, error) ->
       cookie_box = b64decode data.cookie_box
       cookie_box_nonce = cookie_box.subarray 0, BOX_NONCE_BYTES
       cookie_box_cipher = cookie_box.subarray BOX_NONCE_BYTES
-      cookie = JSON.parse decode_utf8 nacl.crypto_box_open(
-        cookie_box_cipher, cookie_box_nonce, serverPublicKey, transientKeys.boxSk)
+      cookie = JSON.parse decodeUTF8 nacl.crypto_box_open(
+        cookie_box_cipher, cookie_box_nonce, serverPublicKey, transientKeys.secretKey)
       success b64decode(cookie.server_tpkey), cookie.cookie
 
 
@@ -192,23 +195,23 @@ sendInitiate = (userKeys, transientKeys, serverTPKey,
 
   transientKeyNonce = nacl.crypto_box_random_nonce()
   transientKeyBox = nacl.crypto_box(
-    transientKeys.boxPk, transientKeyNonce, serverPublicKey, userKeys.boxSk)
+    transientKeys.publicKey, transientKeyNonce, serverPublicKey, userKeys.secretKey)
   noncedTransientKeyBox = concatBuffers transientKeyNonce, transientKeyBox
 
   vouch = {}
-  vouch[VOUCH_CLIENT_PKEY_FIELD] = b64encode userKeys.boxPk
+  vouch[VOUCH_CLIENT_PKEY_FIELD] = b64encode userKeys.publicKey
   vouch[VOUCH_TRANSIENT_KEY_BOX_FIELD] = b64encode noncedTransientKeyBox
   vouch[VOUCH_DOMAIN_NAME_FIELD] = SERVER_DOMAIN_NAME
   vouch[VOUCH_MESSAGE_FIELD] = message
-  vouchBuffer = encode_utf8 JSON.stringify vouch
+  vouchBuffer = encodeUTF8 JSON.stringify vouch
 
   vouchNonce = nacl.crypto_box_random_nonce()
   vouchBox = nacl.crypto_box(
-    vouchBuffer, vouchNonce, serverTPKey, transientKeys.boxSk)
+    vouchBuffer, vouchNonce, serverTPKey, transientKeys.secretKey)
   noncedVouchBox = concatBuffers vouchNonce, vouchBox
 
   payload = {}
-  payload[INITIATE_CLIENT_TRANSIENT_PKEY_FIELD] = b64encode transientKeys.boxPk
+  payload[INITIATE_CLIENT_TRANSIENT_PKEY_FIELD] = b64encode transientKeys.publicKey
   payload[INITIATE_COOKIE_FIELD] = cookie
   payload[INITIATE_VOUCH_FIELD] = b64encode noncedVouchBox
   $.ajax
@@ -222,9 +225,9 @@ sendInitiate = (userKeys, transientKeys, serverTPKey,
       response_box = b64decode data.response
       response_box_nonce = response_box.subarray 0, BOX_NONCE_BYTES
       response_box_cipher = response_box.subarray BOX_NONCE_BYTES
-      response = decode_utf8 nacl.crypto_box_open(
+      response = decodeUTF8 nacl.crypto_box_open(
         response_box_cipher, response_box_nonce,
-        serverTPKey, transientKeys.boxSk)
+        serverTPKey, transientKeys.secretKey)
       success response
 
 
@@ -243,7 +246,7 @@ validPublicKey = (key) ->
   try
     if typeof key == 'string'
       key = b58decode(key)
-    if key.length == nacl.crypto_box_PUBLICKEYBYTES
+    if key.length == nacl.box.publicKeyLength
       valid = true
   catch error
     valid = false
@@ -253,40 +256,41 @@ validPublicKey = (key) ->
 encryptMessage = (senderKeys, recipientPublicKeys, message) ->
   secretToRecipient = (transientKeys, senderKeys,
     recipientPublicKey, messageInfo) ->
-    nonce = nacl.crypto_box_random_nonce()
-    messageInfoBox = nacl.crypto_box(
-      messageInfo, nonce, recipientPublicKey, senderKeys.boxSk)
+    nonce = nacl.randomBytes nacl.box.nonceLength
+    messageInfoBox = nacl.box(
+      messageInfo, nonce, recipientPublicKey, senderKeys.secretKey)
+    console.log messageInfoBox
 
     decryptInfo = {}
-    decryptInfo[DECRYPT_INFO_SENDER_FIELD] = b58encode senderKeys.boxPk
+    decryptInfo[DECRYPT_INFO_SENDER_FIELD] = b58encode senderKeys.publicKey
     decryptInfo[DECRYPT_INFO_MESSAGE_INFO_FIELD] = b64encode messageInfoBox
-    decryptInfo = encode_utf8 JSON.stringify decryptInfo
-    decryptInfoBox = nacl.crypto_box(
-      decryptInfo, nonce, recipientPublicKey, transientKeys.boxSk)
+    decryptInfo = decodeUTF8 JSON.stringify decryptInfo
+    decryptInfoBox = nacl.box(
+      decryptInfo, nonce, recipientPublicKey, transientKeys.secretKey)
     {nonce, decryptInfoBox}
 
-  transientKeys = nacl.crypto_box_keypair()
+  transientKeys = nacl.box.keyPair()
   if typeof message == 'string'
-    message = encode_utf8 message
+    message = decodeUTF8 message
 
-  messageHash = nacl.crypto_hash message
-  messageNonce = nacl.crypto_secretbox_random_nonce()
-  messageKey = nacl.random_bytes nacl.crypto_secretbox_KEYBYTES
-  messageBox = nacl.crypto_secretbox message, messageNonce, messageKey
+  messageHash = nacl.hash message
+  messageNonce = nacl.randomBytes nacl.secretbox.nonceLength
+  messageKey = nacl.randomBytes nacl.secretbox.keyLength
+  messageBox = nacl.secretbox message, messageNonce, messageKey
 
   messageInfo = {}
   messageInfo[MESSAGE_INFO_KEY_FIELD] = b64encode messageKey
   messageInfo[MESSAGE_INFO_NONCE_FIELD] = b64encode messageNonce
-  messageInfo = encode_utf8 JSON.stringify messageInfo
+  messageInfo = decodeUTF8 JSON.stringify messageInfo
 
   cipher = {}
   cipher[CIPHER_VERSION_FIELD] = CIPHER_VERSION
-  cipher[CIPHER_TRANSIENT_PKEY_FIELD] = b58encode transientKeys.boxPk
+  cipher[CIPHER_TRANSIENT_PKEY_FIELD] = b58encode transientKeys.publicKey
   cipher[CIPHER_MESSAGE_FIELD] = b64encode messageBox
   decryptInfo = {}
   cipher[CIPHER_DECRYPT_INFO_FIELD] = decryptInfo
   for recipientPublicKey in recipientPublicKeys
-    if recipientPublicKey.length != nacl.crypto_box_PUBLICKEYBYTES
+    if recipientPublicKey.length != nacl.box.publicKeyLength
       throw new Error "#{b58encode recipientPublicKey} is not valid public key"
     {nonce, decryptInfoBox} = secretToRecipient(
       transientKeys, senderKeys, recipientPublicKey, messageInfo)
@@ -295,9 +299,13 @@ encryptMessage = (senderKeys, recipientPublicKeys, message) ->
 
 
 decryptMessage = (userKeys, cipherText) ->
-  GENERIC_ERROR = 'Could not decrypt message.'
+  FORMAT_ERROR: 'The message is not valid.'
+  CRYPTO_ERROR: 'The message could not be decrypted.'
 
-  cipher = JSON.parse cipherText
+  try
+    cipher = JSON.parse cipherText
+  catch error
+    throw FORMAT_ERROR
 
   transientPublicKey = b58decode cipher[CIPHER_TRANSIENT_PKEY_FIELD]
   decryptInfo = null
@@ -305,27 +313,27 @@ decryptMessage = (userKeys, cipherText) ->
   for nonceBase64, box of cipher[CIPHER_DECRYPT_INFO_FIELD]
     try
       decryptInfoNonce = b64decode nonceBase64
-      decryptInfo = nacl.crypto_box_open(
-        b64decode(box), decryptInfoNonce, transientPublicKey, userKeys.boxSk)
+      decryptInfo = nacl.box.open(
+        b64decode(box), decryptInfoNonce, transientPublicKey, userKeys.secretKey)
       break
     catch error
       # Could not decrypt it, try the next one
   if not (decryptInfo? and decryptInfoNonce?)
     throw GENERIC_ERROR
 
-  decryptInfo = JSON.parse decode_utf8 decryptInfo
+  decryptInfo = JSON.parse encodeUTF8 decryptInfo
   senderPublicKey = b58decode decryptInfo[DECRYPT_INFO_SENDER_FIELD]
 
   messageInfoBox = b64decode decryptInfo[DECRYPT_INFO_MESSAGE_INFO_FIELD]
-  messageInfo = nacl.crypto_box_open(
-      messageInfoBox, decryptInfoNonce, senderPublicKey, userKeys.boxSk)
-  messageInfo = JSON.parse decode_utf8 messageInfo
+  messageInfo = nacl.box.open(
+      messageInfoBox, decryptInfoNonce, senderPublicKey, userKeys.secretKey)
+  messageInfo = JSON.parse encodeUTF8 messageInfo
   messageKey = b64decode messageInfo[MESSAGE_INFO_KEY_FIELD]
   messageNonce = b64decode messageInfo[MESSAGE_INFO_NONCE_FIELD]
 
   plaintext =
     sender: senderPublicKey
-    message: nacl.crypto_secretbox_open(
+    message: nacl.secretbox.open(
       b64decode(cipher[CIPHER_MESSAGE_FIELD]), messageNonce, messageKey)
 
 
@@ -357,7 +365,7 @@ DisturbeApp = React.createClass
 
   setPrivateKey: (privateKey) ->
     window.scrollTo 0, 0
-    userKeys = nacl.crypto_box_keypair_from_raw_sk privateKey
+    userKeys = nacl.box.keyPair.fromSecretKey privateKey
     this.setState userKeys: userKeys
 
   setUserData: (userData) -> this.setState userData: {}
@@ -455,7 +463,7 @@ KeyProfile = React.createClass
       div className: 'media',
         span className: 'pull-left', href: '#',
           div className: 'media-object', ref: 'identicon',
-          toHex nacl.crypto_hash this.props.publicKey
+          toHex nacl.hash this.props.publicKey
         div className: 'media-body',
           KeyProfileItem name: 'Key', value: b58encode this.props.publicKey,
           iconClass: 'fa-key', editable: false
@@ -870,10 +878,10 @@ CurveProfile = React.createClass
           span className: '', href: '#',
             span className: 'text-muted', 'Fingerprint'
             div ref: 'identicon', style: {marginTop: '1em'},
-            toHex nacl.crypto_hash this.props.userKeys.boxPk
+            toHex nacl.hash this.props.userKeys.publicKey
         div className: 'col-sm-10',
-          PublicKeyField publicKey: this.props.userKeys.boxPk
-          SecretKeyField secretKey: this.props.userKeys.boxSk
+          PublicKeyField publicKey: this.props.userKeys.publicKey
+          SecretKeyField secretKey: this.props.userKeys.secretKey
 
 
 PublicKeyField = React.createClass
@@ -913,7 +921,7 @@ PublicKeyField = React.createClass
       div className: 'input-group input-group-lg',
         span className: 'input-group-btn hidden-sm hidden-md hidden-lg',
           button className: 'btn btn-default',
-            span ref: 'identicon', toHex nacl.crypto_hash this.props.publicKey
+            span ref: 'identicon', toHex nacl.hash this.props.publicKey
         input inputProps
         span className: 'input-group-btn',
           button

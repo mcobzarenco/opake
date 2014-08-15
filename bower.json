@@ -28,6 +28,7 @@
         "protobuf": "latest",
         "react": "latest",
         "requirejs": "latest",
+        "tweetnacl": "latest",
         "x-editable": "latest",
         "zeroclipboard": "latest",
         "zxcvbn": "latest"
