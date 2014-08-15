@@ -901,7 +901,8 @@ CurveProfile = React.createClass
         div className: 'col-sm-2 hidden-xs',
           span className: '', href: '#',
             span className: 'text-muted', 'Fingerprint'
-            div ref: 'identicon', style: {marginTop: '1em'},
+            div ref: 'identicon',
+            style: {marginTop: '1em', marginRight: '1em'},
             toHex nacl.hash this.props.userKeys.publicKey
         div className: 'col-sm-10',
           PublicKeyField publicKey: this.props.userKeys.publicKey
@@ -943,11 +944,11 @@ PublicKeyField = React.createClass
       label className: 'control-label',
       style: {fontSize: '1.3em', marginTop: '0em'}, "Curve ID"
       div className: 'input-group input-group-lg',
-        span className: 'input-group-btn hidden-sm hidden-md hidden-lg',
-          button className: 'btn btn-default',
-            span ref: 'identicon', toHex nacl.hash this.props.publicKey
+        span className: 'input-group-btn hidden-sm hidden-md hidden-lg
+        inline-fingerprint',
+          span ref: 'identicon', toHex nacl.hash this.props.publicKey
         input inputProps
-        span className: 'input-group-btn',
+        span className: 'input-group-btn hidden-xs',
           button
             className: 'btn btn-default',
             onClick: this.onCopyPublicKey,

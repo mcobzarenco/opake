@@ -133,3 +133,11 @@ p {
   margin-right: 1em;
   margin-bottom: .5em;
 }
+
+.inline-fingerprint {
+  border-color: #ccc;
+  border-width: 1px;
+  border-style: solid;
+  padding-right: 16px;
+  padding-left: 16px;
+}
