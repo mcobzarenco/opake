@@ -8,21 +8,25 @@ UGLYFIED_JS = "#{DIST_DIR}/merged.min.js"
 module.exports = (grunt) ->
   # Project configuration.
   #
-  css_combine_files = {}
-  css_combine_files[CSS_MERGED] = [
+  cssCombineFiles = {}
+  cssCombineFiles[CSS_MERGED] = [
     "#{BOWER_COMPONENTS}/bootstrap/dist/css/bootstrap.css",
     "#{BOWER_COMPONENTS}/github-fork-ribbon-css/gh-fork-ribbon.css",
     "#{BOWER_COMPONENTS}/bootstrap-tagsinput/dist/bootstrap-tagsinput.css",
     'static/disturbe.css']
-  uglify_files = {}
-  uglify_files[UGLYFIED_JS] = CONCATENATED_JS
+
+  uglifyFiles = {}
+  uglifyFiles[UGLYFIED_JS] = CONCATENATED_JS
+
+  filesStringReplace = {}
+  filesStringReplace["#{BOWER_COMPONENTS}/nprogress/nprogress.css"] = "#{BOWER_COMPONENTS}/nprogress/nprogress.css"
 
   grunt.initConfig
     pkg: grunt.file.readJSON('package.json')
     coffee:
       compile:
         files:
-          'static/dist/disturbe.js': 'static/disturbe.coffee'
+          'static/disturbe.js': 'static/disturbe.coffee'
     copy:
       fontAwesome:
         files: [
@@ -41,7 +45,7 @@ module.exports = (grunt) ->
     cssmin:
       combine:
         keepSpecialComments: 0
-        files: css_combine_files
+        files: cssCombineFiles
       minify:
         expand: true
         cwd: DIST_DIR
@@ -71,17 +75,23 @@ module.exports = (grunt) ->
             defines: {
                 DEBUG: ['name', 'false']
             },
-
-            # Custom value supported by r.js but done differently
             # in uglifyjs directly:
             # Skip the processor.ast_mangle() part of the uglify call (r.js 2.0.5+)
             no_mangle: true
+    'string-replace':
+      dist:
+        files: filesStringReplace
+        options:
+          replacements: [{
+            pattern: /29d/g
+            replacement: '859900'
+          }]
     uglify:
       main:
         options:
           compress: false
           mangle: true
-        files: uglify_files
+        files: uglifyFiles
 
 
   # Load the plugin that provides the "uglify" task.
@@ -90,9 +100,10 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-contrib-cssmin'
   grunt.loadNpmTasks 'grunt-contrib-uglify'
   grunt.loadNpmTasks 'grunt-contrib-requirejs'
+  grunt.loadNpmTasks 'grunt-string-replace'
 
   # Default task(s).
   # grunt.registerTask('default', ['coffee']);
-  grunt.registerTask 'default', [
-    'coffee', 'requirejs', 'uglify', 'cssmin:combine', 'cssmin:minify',
+  grunt.registerTask 'default', [ 'coffee', 'string-replace',
+    'requirejs', 'uglify', 'cssmin:combine', 'cssmin:minify',
     'copy:requirejs', 'copy:fontAwesome']

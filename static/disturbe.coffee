@@ -10,6 +10,7 @@ require.config
     jquery: 'components/jquery/dist/jquery'
     Long: 'components/long/dist/Long'
     nacl: 'nacl'
+    NProgress: 'components/nprogress/nprogress'
     tweetnacl: 'components/tweetnacl/nacl'
     ProtoBuf: 'components/protobuf/dist/ProtoBuf'
     react: 'components/react/react-with-addons'
@@ -29,6 +30,8 @@ require.config
     jquery:
       deps: []
       exports: '$'
+    NProgress:
+      exports: 'NProgress'
     ProtoBuf:
       deps: ['bytebuffer', 'Long']
       exports: 'ProtoBuf'
@@ -42,12 +45,13 @@ require.config
     waitSeconds: 0
 
 
-`require(['jquery', 'react', 'ProtoBuf', 'tweetnacl', 'zxcvbn', 'bootstrap',
-  'bootstrapTags', 'identicon5', 'scrypt', 'bs58', 'base64'],
-  function($, React, ProtoBuf, nacl, zxcvbn) {`
+`require(['jquery', 'NProgress', 'ProtoBuf', 'react', 'tweetnacl',
+  'zxcvbn', 'bootstrap', 'bootstrapTags', 'identicon5', 'scrypt',
+  'bs58', 'base64'],
+  function($, NProgress, ProtoBuf, React, nacl, zxcvbn) {`
 
 {a, br, button, div, form, hr, h1, h2, h3, h4, h5, h6, i, input,
-  label, li, p, option, select, span, strong, textarea, ul} = React.DOM
+  label, li, p, option, select, span, small, strong, textarea, ul} = React.DOM
 
 ### Json CurveCP Protocol Constants ###
 
@@ -584,6 +588,7 @@ ComposeMessage = React.createClass
     try
       ciphertext = encryptMessage(
         this.props.userKeys, recipientKeys, plaintext)
+      NProgress.done()
       this.props.onEncrypt ciphertext
       ciphertext
     catch error
@@ -591,6 +596,7 @@ ComposeMessage = React.createClass
 
   encryptMessage: (event) ->
     event.preventDefault()
+    NProgress.start()
     recipientNode = $(this.refs.recipients.getDOMNode())
     recipientKeys =
       for key in $(recipientNode).val().split(',')
@@ -605,6 +611,7 @@ ComposeMessage = React.createClass
         for file in this.state.files
           fileReader = new FileReader()
           fileReader.onloadend = ((file, reader) ->
+            NProgress.inc(0.1)
             message.files.push
               name: file.name
               contents: reader.result
@@ -755,9 +762,11 @@ DecryptMessage = React.createClass
 
   decryptMessage: (ciphertext) ->
     try
+      NProgress.start()
       plaintext = decryptMessage this.props.userKeys, ciphertext
       message = disturbePb.Message.decode plaintext.message
       message.sender = plaintext.sender
+      NProgress.done()
       this.setState message: message
     catch error
       console.log error
