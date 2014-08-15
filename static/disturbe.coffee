@@ -121,6 +121,8 @@ message Message {
 }
 "
 
+TIPJAR_ADDRESS = '1m3HdqrGAFxoWJE3V8vefPfnHVQAvC6EE'
+
 # nacl = nacl_factory.instantiate()
 scrypt = scrypt_module_factory()
 {encodeUTF8, decodeUTF8} = nacl.util
@@ -362,7 +364,7 @@ bytesToSize = (bytes, precision = 1) ->
 
 DisturbeApp = React.createClass
   getInitialState: ->
-    userKeys: nacl.box.keyPair.fromSecretKey b58decode '5wxr8dxA18Tz7auhFyjH7Nv3AZTs5ruKiB63Xfa7Wscw'
+    userKeys: null
     userData: null
     selectedTab: TAB_ENCRYPT
 
@@ -1132,6 +1134,29 @@ InputField = React.createClass
       div className: 'col-xs-12', style:{display:'inline-block'},
         label className: 'control-label', this.props.label
         input inputProps
+
+
+Tipjar = React.createClass
+  render: ->
+    div null,
+      div className: 'row large-bottom',
+        div className: 'col-md-12',
+          h5 null, 'Bitcoin Tip Jar'
+          small null, 'If you found this service useful and would like to
+          support it, you can donate BTCs at the address below.'
+      div className: 'row large-bottom',
+        div className: 'col-md-12',
+          div className: 'input-group',
+            div className: 'input-group-addon',
+              i className: 'fa fa-btc fa-lg'
+            input className: 'form-control', type: 'text',
+            value: this.props.address, readOnly: true,
+            style: {backgroundColor: 'white', cursor: 'auto'}
+      div className: 'row',
+        div className: 'col-md-12',
+          small null, 'The money will be used to pay for hosting,
+          support further development as well as fund a comprehensive
+          code audit.'
 
 
 $ () ->
