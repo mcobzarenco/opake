@@ -380,30 +380,46 @@ DisturbeApp = React.createClass
         this.setUserData response).bind(this),
       (xhr) -> alert xhr.responseText
 
-  render: ->
+  containerWrap: (inner) ->
     div null,
-      if this.state.userKeys?
-        div null,
-          h1 className: 'large-bottom', 'curvech.at'
-          div className: 'row',
-            div className: 'col-md-12',
-              h3 null, 'Curve Profile'
-          div className: 'row',
-            div className: 'col-md-12 large-bottom',
-              p null,
-              'Anyone who has your curve ID can send messages that
-              only you can decrypt.'
-              p null,
-              'Spread your curve ID wide. The secret key you should
-              never reveal.'
-          CurveProfile userKeys: this.state.userKeys
-          CryptoTabPicker userKeys: this.state.userKeys
-      else
-        div className: 'row',
-          div className: 'col-md-8 col-md-offset-2 large-bottom',
-            h1 className: 'large-bottom', 'curvech.at'
-            GeneratePrivateKey onGenerateKey: this.setPrivateKey
+      if not this.state.userKeys?
+        div className: "github-fork-ribbon-wrapper right",
+          div className: "github-fork-ribbon",
+            a href: "https://github.com/mcobzarenco/disturbe",
+             "Fork me on GitHub"
+      div className: "container",
+        div className: "row",
+          div className: "col-md-10 col-md-offset-1",
+            inner
 
+  render: ->
+    this.containerWrap(
+      div null,
+        if this.state.userKeys?
+          div null,
+            h1 className: 'large-bottom', 'curvech.at'
+            div className: 'row',
+              div className: 'col-md-12',
+                h3 null, 'Curve Profile'
+            div className: 'row',
+              div className: 'col-md-12 large-bottom',
+                p null,
+                'Anyone who has your curve ID can send messages that
+                only you can decrypt.'
+                p null,
+                'Spread your curve ID wide. The secret key you should
+                never reveal.'
+            CurveProfile userKeys: this.state.userKeys
+            CryptoTabPicker userKeys: this.state.userKeys
+        else
+          div null,
+            div className: 'row',
+              div className: 'col-md-8 col-md-offset-2 large-bottom',
+                h1 className: 'large-bottom', 'curvech.at'
+                GeneratePrivateKey onGenerateKey: this.setPrivateKey
+                hr null
+                Tipjar address: TIPJAR_ADDRESS
+            )
 
 TAB_ENCRYPT = 'encrypt'
 TAB_DECRYPT = 'decrypt'
