@@ -168,14 +168,14 @@ toHex = (arr) ->
 
 sendHello = (transientKeys, success, error) ->
   serverPublicKey = b64decode SERVER_PUBLIC_KEY
-  zeros = new Uint8Array(HELLO_PADDING_BYTES)
-  nonce = nacl.crypto_box_random_nonce()
-  zerosBox = nacl.crypto_box zeros, nonce, serverPublicKey, transientKeys.secretKey
+  zeros = new Uint8Array HELLO_PADDING_BYTES
+  nonce = nacl.randomBytes nacl.box.nonceLength
+  zerosBox = nacl.box zeros, nonce, serverPublicKey, transientKeys.secretKey
   noncedZerosBox = concatBuffers nonce, zerosBox
 
   payload = {}
   payload[HELLO_CLIENT_TRANSIENT_PKEY_FIELD] = b64encode transientKeys.publicKey
-  payload[HELLO_PADDING_FIELD] = b64encode new Uint8Array(HELLO_PADDING_BYTES)
+  payload[HELLO_PADDING_FIELD] = b64encode new Uint8Array HELLO_PADDING_BYTES
   payload[HELLO_ZEROS_BOX_FIELD] = b64encode noncedZerosBox
   $.ajax
     type: 'POST'
@@ -188,7 +188,7 @@ sendHello = (transientKeys, success, error) ->
       cookie_box = b64decode data.cookie_box
       cookie_box_nonce = cookie_box.subarray 0, BOX_NONCE_BYTES
       cookie_box_cipher = cookie_box.subarray BOX_NONCE_BYTES
-      cookie = JSON.parse decodeUTF8 nacl.crypto_box_open(
+      cookie = JSON.parse encodeUTF8 nacl.box.open(
         cookie_box_cipher, cookie_box_nonce, serverPublicKey, transientKeys.secretKey)
       success b64decode(cookie.server_tpkey), cookie.cookie
 
@@ -197,8 +197,8 @@ sendInitiate = (userKeys, transientKeys, serverTPKey,
   cookie, message, success, error) ->
   serverPublicKey = b64decode SERVER_PUBLIC_KEY
 
-  transientKeyNonce = nacl.crypto_box_random_nonce()
-  transientKeyBox = nacl.crypto_box(
+  transientKeyNonce = nacl.randomBytes nacl.box.nonceLength
+  transientKeyBox = nacl.box(
     transientKeys.publicKey, transientKeyNonce, serverPublicKey, userKeys.secretKey)
   noncedTransientKeyBox = concatBuffers transientKeyNonce, transientKeyBox
 
@@ -207,10 +207,10 @@ sendInitiate = (userKeys, transientKeys, serverTPKey,
   vouch[VOUCH_TRANSIENT_KEY_BOX_FIELD] = b64encode noncedTransientKeyBox
   vouch[VOUCH_DOMAIN_NAME_FIELD] = SERVER_DOMAIN_NAME
   vouch[VOUCH_MESSAGE_FIELD] = message
-  vouchBuffer = encodeUTF8 JSON.stringify vouch
+  vouchBuffer = decodeUTF8 JSON.stringify vouch
 
-  vouchNonce = nacl.crypto_box_random_nonce()
-  vouchBox = nacl.crypto_box(
+  vouchNonce = nacl.randomBytes nacl.box.nonceLength
+  vouchBox = nacl.box(
     vouchBuffer, vouchNonce, serverTPKey, transientKeys.secretKey)
   noncedVouchBox = concatBuffers vouchNonce, vouchBox
 
@@ -229,14 +229,14 @@ sendInitiate = (userKeys, transientKeys, serverTPKey,
       response_box = b64decode data.response
       response_box_nonce = response_box.subarray 0, BOX_NONCE_BYTES
       response_box_cipher = response_box.subarray BOX_NONCE_BYTES
-      response = decodeUTF8 nacl.crypto_box_open(
+      response = encodeUTF8 nacl.box.open(
         response_box_cipher, response_box_nonce,
         serverTPKey, transientKeys.secretKey)
       success response
 
 
 sendMessage = (userKeys, message, success, error) ->
-  transientKeys = nacl.crypto_box_keypair()
+  transientKeys = nacl.box.keyPair()
   serverPublicKey = b64decode SERVER_PUBLIC_KEY
   sendHello transientKeys,
     (serverTPKey, cookie) ->
@@ -263,7 +263,6 @@ encryptMessage = (senderKeys, recipientPublicKeys, message) ->
     nonce = nacl.randomBytes nacl.box.nonceLength
     messageInfoBox = nacl.box(
       messageInfo, nonce, recipientPublicKey, senderKeys.secretKey)
-    console.log messageInfoBox
 
     decryptInfo = {}
     decryptInfo[DECRYPT_INFO_SENDER_FIELD] = b58encode senderKeys.publicKey
@@ -363,7 +362,7 @@ bytesToSize = (bytes, precision = 1) ->
 
 DisturbeApp = React.createClass
   getInitialState: ->
-    userKeys: null
+    userKeys: nacl.box.keyPair.fromSecretKey b58decode '5wxr8dxA18Tz7auhFyjH7Nv3AZTs5ruKiB63Xfa7Wscw'
     userData: null
     selectedTab: TAB_ENCRYPT
 
