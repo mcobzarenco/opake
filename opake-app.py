@@ -34,6 +34,7 @@ DEFAULT_WORKERS = 4
 DEFAULT_COOKIE_PREFIX = 'cookie:'
 DEFAULT_MINUTE_KEY_EXPIRY_SECS = 30
 
+STATIC_ROOT = 'src'
 DIST_INDEX = 'dist.html'
 DEBUG_INDEX = 'debug.html'
 
@@ -259,12 +260,12 @@ def check_exact_length(value, value_name, expected_len):
 @route('/')
 @route('/static/<filepath:path>')
 def server_static(filepath=DIST_INDEX):
-    return static_file(filepath, root='static/')
+    return static_file(filepath, root=STATIC_ROOT)
 
 
 @route('/debug')
 def debug_version():
-    return static_file(DEBUG_INDEX, root='static/')
+    return static_file(DEBUG_INDEX, root=STATIC_ROOT)
 
 
 @route('/handshake/hello', method='POST')

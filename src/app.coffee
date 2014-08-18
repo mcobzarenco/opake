@@ -1,20 +1,18 @@
 require.config
-  baseUrl: 'static',
   paths:
-    base64: 'base64'
+    base64: '3rd-party/base64'
     bootstrap: 'components/bootstrap/dist/js/bootstrap'
     bootstrapTags: 'components/bootstrap-tagsinput/dist/bootstrap-tagsinput'
-    bs58: 'bs58'
+    bs58: '3rd-party/bs58'
     bytebuffer: 'components/bytebuffer/dist/ByteBufferAB'
-    identicon5: 'jquery.identicon5.packed'
+    identicon5: '3rd-party/jquery.identicon5.packed'
     jquery: 'components/jquery/dist/jquery'
     Long: 'components/long/dist/Long'
-    nacl: 'nacl'
     NProgress: 'components/nprogress/nprogress'
     tweetnacl: 'components/tweetnacl/nacl'
     ProtoBuf: 'components/protobuf/dist/ProtoBuf'
     react: 'components/react/react-with-addons'
-    scrypt: 'scrypt'
+    scrypt: '3rd-party/scrypt'
     zxcvbn: 'components/zxcvbn/zxcvbn'
   shim:
     bootstrap:
@@ -50,13 +48,13 @@ require.config
   'bs58', 'base64'],
   function($, NProgress, ProtoBuf, React, nacl, zxcvbn) {`
 
-{a, br, button, div, form, hr, h1, h2, h3, h4, h5, h6, i, input,
+{a, br, button, div, form, hr, h1, h2, h3, h4, h5, h6, i, img, input,
   label, li, p, option, select, span, small, strong, textarea, ul} = React.DOM
 
 ### Json CurveCP Protocol Constants ###
 
 SERVER_PUBLIC_KEY = 'kC_rSIO7t1ryhux1sn_LrtTrLyVZNd08BCXnSHQjgmA='
-SERVER_DOMAIN_NAME = 'curvech.at'
+SERVER_DOMAIN_NAME = 'opake.io'
 
 HELLO_URL = '/handshake/hello'
 HELLO_PADDING_BYTES = 64
@@ -366,7 +364,6 @@ DisturbeApp = React.createClass
   getInitialState: ->
     userKeys: null
     userData: null
-    selectedTab: TAB_ENCRYPT
 
   setPrivateKey: (privateKey) ->
     window.scrollTo 0, 0
@@ -399,25 +396,31 @@ DisturbeApp = React.createClass
       div null,
         if this.state.userKeys?
           div null,
-            h1 className: 'large-bottom', 'curvech.at'
+            div className: 'logo',
+              h1 className: 'large-bottom',
+                'opake'
+                img src: 'static/assets/logo.png'
             div className: 'row',
               div className: 'col-md-12',
-                h3 null, 'Curve Profile'
+                h3 null, 'Profile'
             div className: 'row',
               div className: 'col-md-12 large-bottom',
                 p null,
-                'Anyone who has your curve ID can send messages that
+                'Anyone who has your opake ID can send messages that
                 only you can decrypt.'
                 p null,
-                'Spread your curve ID wide. The secret key you should
+                'Spread your opake ID wide. The secret key you should
                 never reveal.'
-            CurveProfile userKeys: this.state.userKeys
+            OpakeProfile userKeys: this.state.userKeys
             CryptoTabPicker userKeys: this.state.userKeys
         else
           div null,
             div className: 'row',
               div className: 'col-md-8 col-md-offset-2 large-bottom',
-                h1 className: 'large-bottom', 'curvech.at'
+                div className: 'logo',
+                  h1 className: 'large-bottom',
+                    'opake'
+                    img src: 'static/assets/logo.png'
                 GeneratePrivateKey onGenerateKey: this.setPrivateKey
                 hr null
                 Tipjar address: TIPJAR_ADDRESS
@@ -455,15 +458,16 @@ CryptoTabPicker = React.createClass
               a href: "##{TAB_DECRYPT}", onClick: changeTabTo(TAB_DECRYPT),
                 i className: 'fa fa-unlock-alt nav-icon'
                 div className: 'nav-label', 'Decrypt'
-            li className: activeIf(TAB_CLOUD),
-              a href: "##{TAB_CLOUD}", onClick: changeTabTo(TAB_CLOUD),
-                i className: 'fa fa-cloud nav-icon'
-                div className: 'nav-label', 'Cloud'
+            # li className: activeIf(TAB_CLOUD),
+            #   a href: "##{TAB_CLOUD}", onClick: changeTabTo(TAB_CLOUD),
+            #     i className: 'fa fa-cloud nav-icon'
+            #     div className: 'nav-label', 'Cloud'
       div className: hiddenIfNot(TAB_ENCRYPT),
         EncryptMessage userKeys: this.props.userKeys
       div className: hiddenIfNot(TAB_DECRYPT),
         DecryptMessage userKeys: this.props.userKeys
-      div className: hiddenIfNot(TAB_CLOUD), ''
+      # div className: hiddenIfNot(TAB_CLOUD),
+      #   RemoteMessaging userKeys: this.props.userKeys
 
 
 KeyProfile = React.createClass
@@ -533,7 +537,7 @@ EncryptMessage = React.createClass
             div className: 'col-md-12 large-bottom',
               h3 null, 'Compose an encrypted message'
               p null,
-              'Only the owners of the curve IDs you specify will be able
+              'Only the owners of the opake IDs you specify will be able
                 to decrypt it.'
           ComposeMessage userKeys: this.props.userKeys,
           onEncrypt: ((ciphertext) ->
@@ -650,9 +654,9 @@ ComposeMessage = React.createClass
     if invalidRecipients.length > 0
       invalidJoined = "#{invalidRecipients.join(', ')}"
       if invalidRecipients.length == 1
-        error = "#{invalidJoined} is not a valid curve ID"
+        error = "#{invalidJoined} is not a valid opake ID"
       else
-        error = "#{invalidJoined} are not valid curve IDs"
+        error = "#{invalidJoined} are not valid opake IDs"
 
     encryptButtonProps =
       className: 'btn btn-lg btn-success'
@@ -800,7 +804,7 @@ DecryptMessage = React.createClass
           h3 null, 'Decrypt a message'
           p null,
           'You can only decrypt a message that was encrypted for your
-          curve ID.'
+          opake ID.'
       if not this.state.message?
         form className: 'form-horizontal',
           if this.state.error?
@@ -836,6 +840,7 @@ DecryptMessage = React.createClass
       else
         div null,
           MessageView message: this.state.message
+          hr null
           div className: 'row',
             div className: 'col-md-12',
               p null, 'Decrypt ',
@@ -886,7 +891,7 @@ FileSelect = React.createClass
     input style: {display: 'none'}, type: 'file',  ref: 'inputFiles'
 
 
-CurveProfile = React.createClass
+OpakeProfile = React.createClass
   SIZE_COLLAPSED: 60
   SIZE_EXPANDED: 120
   getInitialState: ->
@@ -931,8 +936,8 @@ PublicKeyField = React.createClass
 
   onTweet: (event) ->
     event.preventDefault()
-    tweet_text = "cryptch.at is zero knowledge messaging with end to end " +
-    "encryption. My public key is #{b58encode this.props.publicKey}"
+    tweet_text = "opake.io is zero knowledge messaging with end to end
+    encryption. My opake ID is #{b58encode this.props.publicKey}"
     window.open("https://twitter.com/intent/tweet?text=#{tweet_text}")
 
   render: ->
@@ -948,7 +953,7 @@ PublicKeyField = React.createClass
 
     div style: {paddingBottom: '1em'},
       label className: 'control-label',
-      style: {fontSize: '1.3em', marginTop: '0em'}, "Curve ID"
+      style: {fontSize: '1.3em', marginTop: '0em'}, "Opake ID"
       div className: 'input-group input-group-lg',
         span className: 'input-group-btn hidden-sm hidden-md hidden-lg
         inline-fingerprint',
@@ -1008,6 +1013,23 @@ SecretKeyField = React.createClass
             if this.state.shown then 'Hide' else 'Show'
 
 
+RemoteMessaging = React.createClass
+  getInitialState: () -> userData: null
+
+  setUserData: (userData) -> this.setState userData: {}
+
+  login: (event) ->
+    sendMessage this.props.userKeys, {'method': 'get_userdata'},
+      ((response) -> this.setUserData response).bind(this),
+      (xhr) -> alert xhr.responseText
+
+  render: ->
+    div className: 'row',
+      div className: 'col-md-12',
+        button className: 'btn btn-success', onClick: this.login,
+        "Sign in with opake ID"
+
+
 GeneratePrivateKey = React.createClass
   getInitialState: ->
     email: ''
@@ -1033,7 +1055,7 @@ GeneratePrivateKey = React.createClass
         form className: 'form-horizontal',
           div className: 'row',
             div className: 'col-md-12',
-              h3 null, 'Derive your curve ID'
+              h3 null, 'Derive your opake ID'
               p null,
               'Your email and password are used to generate a unique
               pair of keys.'
@@ -1059,7 +1081,7 @@ GeneratePrivateKey = React.createClass
               this.setState validPassword: valid).bind(this)}
           div className: 'form-group',
             div className: 'col-md-12 ',
-              button deriveButtonProps, 'Derive your curve ID'
+              button deriveButtonProps, 'Derive your opake ID'
 
 
 VerifyPassword = React.createClass
@@ -1112,9 +1134,9 @@ VerifyPassword = React.createClass
         InputField
           type: 'password',
           label: 'Check (optional)'
+          placeholder: 'Retype password (optional)'
           onChange: ((password) ->
             this.setState verifyPassword: password).bind this
-          placeholder: 'Retype password (optional)'
       div className: 'row',
         div className: 'col-md-12 large-bottom',
           p className: messageClass, message

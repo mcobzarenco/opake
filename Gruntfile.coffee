@@ -1,5 +1,5 @@
-DIST_DIR = 'static/dist'
-BOWER_COMPONENTS = 'static/components'
+DIST_DIR = 'dist'
+BOWER_COMPONENTS = 'bower_components'
 
 CSS_MERGED = "#{DIST_DIR}/merged.css"
 CONCATENATED_JS = "#{DIST_DIR}/merged.js"
@@ -13,7 +13,7 @@ module.exports = (grunt) ->
     "#{BOWER_COMPONENTS}/bootstrap/dist/css/bootstrap.css",
     "#{BOWER_COMPONENTS}/github-fork-ribbon-css/gh-fork-ribbon.css",
     "#{BOWER_COMPONENTS}/bootstrap-tagsinput/dist/bootstrap-tagsinput.css",
-    'static/disturbe.css']
+    'src/app.css']
 
   uglifyFiles = {}
   uglifyFiles[UGLYFIED_JS] = CONCATENATED_JS
@@ -26,19 +26,19 @@ module.exports = (grunt) ->
     coffee:
       compile:
         files:
-          'static/disturbe.js': 'static/disturbe.coffee'
+          'src/app.js': 'src/app.coffee'
     copy:
       fontAwesome:
         files: [
           expand: true
-          cwd: 'static/components/'
+          cwd: BOWER_COMPONENTS
           src: ['font-awesome/**']
           dest: DIST_DIR
           ]
       requirejs:
         files: [
           expand: true
-          cwd: 'static/components/requirejs/'
+          cwd: "#{BOWER_COMPONENTS}/requirejs"
           src: ['require.js']
           dest: "#{DIST_DIR}/"
           ]
@@ -55,10 +55,9 @@ module.exports = (grunt) ->
     requirejs:
       compile:
         options:
-          mainConfigFile : "static/disturbe.js"
+          mainConfigFile : "src/app.js"
 
-          baseUrl : "static"
-          name: "disturbe"
+          name: "app"
           out: "#{DIST_DIR}/merged.js"
           optimize: 'none'
           # removeCombined: false
@@ -103,7 +102,6 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-string-replace'
 
   # Default task(s).
-  # grunt.registerTask('default', ['coffee']);
   grunt.registerTask 'default', [ 'coffee', 'string-replace',
     'requirejs', 'uglify', 'cssmin:combine', 'cssmin:minify',
     'copy:requirejs', 'copy:fontAwesome']

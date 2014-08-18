@@ -1,8 +1,14 @@
 body {
-   margin-bottom: 10em;
+  margin-bottom: 10em;
   font-family: monospace;
   overflow: auto;
   overflow-y: scroll;
+}
+
+.logo img {
+  border-radius: 10px;
+  width: 60px;
+  margin-left: .3em;
 }
 
 #loader {
@@ -27,9 +33,9 @@ input[readonly] {
   background-color: #aaa
 }
 
-input[type="password"] {
-  font-family: sans-serif;
-}
+/* input[type="password"] { */
+/*   font-family: sans-serif; */
+/* } */
 
 textarea {
   resize: vertical;

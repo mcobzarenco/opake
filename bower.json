@@ -1,11 +1,9 @@
 {
-    "name": "curvech.at",
-    "version": "0.0.1",
-    "homepage": "https://github.com/mcobzaenco/disturbe",
-    "authors": [
-        "Marius Cobzarenco <marius@reinfer.io>"
-    ],
-    "description": "zero knowledge messaging",
+    "name": "opake",
+    "version": "0.2.0",
+    "homepage": "https://github.com/mcobzaenco/opake",
+    "authors": ["Marius Cobzarenco"],
+    "description": "Zero knowledge messaging with end to end crypto.",
     "private": false,
     "ignore": [
         "**/.*",

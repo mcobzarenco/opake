@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>disturbe.io</title>
+
+    <link href="static/components/bootstrap/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+    <link href="static/components/font-awesome/css/font-awesome.min.css"
+          rel="stylesheet">
+    <link href="static/components/github-fork-ribbon-css/gh-fork-ribbon.css"
+          rel="stylesheet">
+    <link href="static/components/bootstrap-tagsinput/dist/bootstrap-tagsinput.css"
+          rel="stylesheet">
+    <link href="static/components/nprogress/nprogress.css"
+          rel="stylesheet">
+
+    <link href="static/app.css" rel="stylesheet">
+  </head>
+  <body>
+    <div id="app">
+    </div>
+    <div id="loader">
+      <i class="fa fa-cog fa-spin"></i>
+      Loading app <span id="loader-dots">...</span>
+    </div>
+
+    <script src="static/components/requirejs/require.js"
+            type="text/javascript" data-main="static/app"></script>
+  </body>
+</html>

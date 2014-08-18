@@ -25,15 +25,15 @@ RUN cd libsodium && ./autogen.sh && ./configure && make && make install
 RUN git clone https://github.com/pyca/pynacl.git
 RUN cd pynacl && python setup.py install
 
-# Install disturbe
+# Install opake app
 RUN pip install bottle jsonschema gevent gunicorn redis riak && ldconfig
-RUN mkdir disturbe
-ADD . /src/disturbe
-RUN rm -rf disturbe/static/components
-WORKDIR /src/disturbe
+RUN mkdir opake
+ADD . /src/opake
+RUN rm -rf opake/static/components
+WORKDIR /src/opake
 RUN npm install
 RUN bower --allow-root install
 RUN grunt -v
 
-VOLUME ["/src/disturbe"]
-ENTRYPOINT ["./disturbe-app.py"]
+VOLUME ["/src/opake"]
+ENTRYPOINT ["./opake-app.py"]
