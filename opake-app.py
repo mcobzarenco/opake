@@ -35,8 +35,9 @@ DEFAULT_COOKIE_PREFIX = 'cookie:'
 DEFAULT_MINUTE_KEY_EXPIRY_SECS = 30
 
 STATIC_ROOT = 'src'
-DIST_INDEX = 'dist.html'
 DEBUG_INDEX = 'debug.html'
+DIST_ROOT = 'dist'
+DIST_INDEX = 'dist.html'
 
 CURVE25519_KEY_BYTES = 32
 SERVER_PUBLIC_KEY = 'kC_rSIO7t1ryhux1sn_LrtTrLyVZNd08BCXnSHQjgmA='
@@ -261,6 +262,11 @@ def check_exact_length(value, value_name, expected_len):
 @route('/static/<filepath:path>')
 def server_static(filepath=DIST_INDEX):
     return static_file(filepath, root=STATIC_ROOT)
+
+
+@route('/dist/<filepath:path>')
+def server_static(filepath=DIST_INDEX):
+    return static_file(filepath, root=DIST_ROOT)
 
 
 @route('/debug')
