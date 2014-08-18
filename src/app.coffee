@@ -40,7 +40,7 @@ require.config
       exports: 'nacl'
     zxcvbn:
       exports: 'zxcvbn'
-    waitSeconds: 0
+    waitSeconds: 5
 
 
 `require(['jquery', 'NProgress', 'ProtoBuf', 'react', 'tweetnacl',

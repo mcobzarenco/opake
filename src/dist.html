@@ -17,6 +17,27 @@
     <script src="dist/require.js"
             type="text/javascript" data-main="dist/merged.min">
     </script>
+    <script>
+     function getParameterByName(name) {
+       name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+       var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+       results = regex.exec(location.search);
+       return results == null ? "0" : decodeURIComponent(results[1].replace(/\+/g, " "));
+     }
+
+     requirejs.onError = function(err) {
+        console.log(err.requireType);
+        if (err.requireType === 'timeout') {
+          var requirejsRetry = parseInt(getParameterByName('retry'));
+          console.log('modules: ' + err.requireModules);
+          if (requirejsRetry < 3) {
+            window.location.search = '?retry=' + (requirejsRetry + 1);
+          } else {
+            alert('The app could not be loaded (#1).');
+          }
+       }
+     }
+    </script>
 
     <script>
       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
