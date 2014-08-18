@@ -1294,7 +1294,7 @@
       var tweet_text;
       event.preventDefault();
       tweet_text = "http://opake.io is zero knowledge messaging with end to end encryption. My opake ID is " + (b58encode(this.props.publicKey));
-      return window.open("https://twitter.com/intent/tweet?text=" + tweet_text);
+      return window.open("https://twitter.com/intent/tweet?text=" + encodeURIComponent(tweet_text));
     },
     render: function() {
       var inputProps;

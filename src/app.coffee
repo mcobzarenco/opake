@@ -938,7 +938,8 @@ PublicKeyField = React.createClass
     event.preventDefault()
     tweet_text = "http://opake.io is zero knowledge messaging with end to end
     encryption. My opake ID is #{b58encode this.props.publicKey}"
-    window.open("https://twitter.com/intent/tweet?text=#{tweet_text}")
+    window.open("https://twitter.com/intent/tweet?text=" +
+      encodeURIComponent tweet_text)
 
   render: ->
     inputProps =
