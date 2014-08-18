@@ -659,7 +659,7 @@ ComposeMessage = React.createClass
         error = "#{invalidJoined} are not valid opake IDs"
 
     encryptButtonProps =
-      className: 'btn btn-lg btn-success'
+      className: 'btn btn-success'
       onClick: this.encryptMessage
     if error? or this.state.recipients.length == 0
       encryptButtonProps.disabled = 'true'
@@ -936,7 +936,7 @@ PublicKeyField = React.createClass
 
   onTweet: (event) ->
     event.preventDefault()
-    tweet_text = "opake.io is zero knowledge messaging with end to end
+    tweet_text = "http://opake.io is zero knowledge messaging with end to end
     encryption. My opake ID is #{b58encode this.props.publicKey}"
     window.open("https://twitter.com/intent/tweet?text=#{tweet_text}")
 

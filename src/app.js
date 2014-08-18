@@ -843,7 +843,7 @@
         }
       }
       encryptButtonProps = {
-        className: 'btn btn-lg btn-success',
+        className: 'btn btn-success',
         onClick: this.encryptMessage
       };
       if ((error != null) || this.state.recipients.length === 0) {
@@ -1293,7 +1293,7 @@
     onTweet: function(event) {
       var tweet_text;
       event.preventDefault();
-      tweet_text = "opake.io is zero knowledge messaging with end to end encryption. My opake ID is " + (b58encode(this.props.publicKey));
+      tweet_text = "http://opake.io is zero knowledge messaging with end to end encryption. My opake ID is " + (b58encode(this.props.publicKey));
       return window.open("https://twitter.com/intent/tweet?text=" + tweet_text);
     },
     render: function() {
