@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import print_function, division
+from gevent import monkey
+monkey.patch_all()
+
 import argparse
 import inspect
 import json
@@ -258,6 +261,7 @@ def check_exact_length(value, value_name, expected_len):
             raise InvalidClientRequest('%s should be exactly %d bytes long' %
                                        (value_name, expected_len))
 
+
 @route('/')
 @route('/static/<filepath:path>')
 def server_static(filepath=DIST_INDEX):
@@ -413,9 +417,6 @@ if __name__ == '__main__' or True:
     _arg('--debug', action='store_true', help='run in debug mode with '
          'restart on code change, template recompilation, error reporting '
          'and increased verbosity')
-    _arg('--workers', type=int, action='store', default=DEFAULT_WORKERS,
-         help='num of gunicorn workers - ignored in debug mode - default: %d'
-         % DEFAULT_WORKERS, metavar='N')
     program_name, args = sys.argv[0], parser.parse_args()
 
     bind = parse_hostport(args.bind)
@@ -440,5 +441,4 @@ if __name__ == '__main__' or True:
         sys.argv = [program_name]
         bottle.run(app=app, host=bind['host'], port=bind['port'],
                    debug=False, quiet=False, reloader=False,
-                   server='gunicorn', workers=args.workers,
-                   worker_class='gevent')
+                   server='gevent')

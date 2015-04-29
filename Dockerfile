@@ -26,7 +26,7 @@ RUN git clone https://github.com/pyca/pynacl.git
 RUN cd pynacl && python setup.py install
 
 # Install opake app
-RUN pip install bottle jsonschema gevent gunicorn redis riak && ldconfig
+RUN pip install bottle jsonschema gevent redis riak && ldconfig
 RUN mkdir opake
 ADD . /src/opake
 RUN rm -rf opake/static/components
