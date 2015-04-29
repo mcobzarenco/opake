@@ -360,7 +360,7 @@ bytesToSize = (bytes, precision = 1) ->
     bytes + ' B'
 
 
-DisturbeApp = React.createClass
+DisturbeAppClass = React.createClass
   getInitialState: ->
     userKeys: null
     userData: null
@@ -426,11 +426,14 @@ DisturbeApp = React.createClass
                 Tipjar address: TIPJAR_ADDRESS
             )
 
+DisturbeApp = React.createFactory DisturbeAppClass
+
+
 TAB_ENCRYPT = 'encrypt'
 TAB_DECRYPT = 'decrypt'
 TAB_CLOUD = 'cloud'
 
-CryptoTabPicker = React.createClass
+CryptoTabPickerClass = React.createClass
   getInitialState: -> selectedTab: TAB_ENCRYPT
 
   changeTab: (tab, event) ->
@@ -469,8 +472,10 @@ CryptoTabPicker = React.createClass
       # div className: hiddenIfNot(TAB_CLOUD),
       #   RemoteMessaging userKeys: this.props.userKeys
 
+CryptoTabPicker = React.createFactory CryptoTabPickerClass
 
-KeyProfile = React.createClass
+
+KeyProfileClass = React.createClass
   getInitialState: ->
     name: 'anonymous'
     email: ''
@@ -499,8 +504,10 @@ KeyProfile = React.createClass
           KeyProfileItem name: 'Social', value: this.state.social,
           iconClass: 'fa-share-alt', editable: true
 
+KeyProfile = React.createFactory KeyProfileClass
 
-KeyProfileItem = React.createClass
+
+KeyProfileItemClass = React.createClass
   componentDidMount: () ->
     editable = if this.props.editable? then this.props.editable else false
     if editable
@@ -523,8 +530,10 @@ KeyProfileItem = React.createClass
       span className: valueClass, ref: this.props.name, href: '#',
       this.props.value
 
+KeyProfileItem = React.createFactory KeyProfileItemClass
 
-EncryptMessage = React.createClass
+
+EncryptMessageClass = React.createClass
   getInitialState: -> ciphertext: null
 
   clear: -> this.setState this.getInitialState()
@@ -555,8 +564,10 @@ EncryptMessage = React.createClass
                   a onClick: this.clear, style: {cursor: 'pointer'},
                   'new message'
 
+EncryptMessage = React.createFactory EncryptMessageClass
 
-ComposeMessage = React.createClass
+
+ComposeMessageClass = React.createClass
   getInitialState: () ->
     recipients: []
     message: ''
@@ -711,8 +722,10 @@ ComposeMessage = React.createClass
                   i className: 'fa fa-fw fa-lock'
                   span null, 'Encrypt'
 
+ComposeMessage = React.createFactory ComposeMessageClass
 
-CiphertextArea = React.createClass
+
+CiphertextAreaClass = React.createClass
   MAX_CIPHER_LENGTH: 50 * 1024
 
   selectCiphertext: (event) ->
@@ -763,8 +776,10 @@ CiphertextArea = React.createClass
           value: textareaValue, readOnly: true, rows: 5,
           style: {backgroundColor: 'white', cursor: 'auto'}
 
+CiphertextArea = React.createFactory CiphertextAreaClass
 
-DecryptMessage = React.createClass
+
+DecryptMessageClass = React.createClass
   FORMAT_ERROR: 'The message is not valid.'
   CRYPTO_ERROR: 'The message could not be decrypted.'
 
@@ -847,8 +862,10 @@ DecryptMessage = React.createClass
                 a onClick: this.clear, style: {cursor: 'pointer'},
                 'another message'
 
+DecryptMessage = React.createFactory DecryptMessageClass
 
-MessageView = React.createClass
+
+MessageViewClass = React.createClass
   render: ->
     form className: 'form-horizontal',
       div className: 'form-group',
@@ -875,8 +892,10 @@ MessageView = React.createClass
               a href: url, download: file.name,
                 i className: 'fa fa-fw fa-lg fa-download dismiss-icon',
 
+MessageView = React.createFactory MessageViewClass
 
-FileSelect = React.createClass
+
+FileSelectClass = React.createClass
   componentDidMount: () ->
     if this.props.onChange?
       $(this.refs.inputFiles.getDOMNode()).on 'change', ((event) ->
@@ -890,8 +909,10 @@ FileSelect = React.createClass
     #   multiple
     input style: {display: 'none'}, type: 'file',  ref: 'inputFiles'
 
+FileSelect = React.createFactory FileSelectClass
 
-OpakeProfile = React.createClass
+
+OpakeProfileClass = React.createClass
   SIZE_COLLAPSED: 60
   SIZE_EXPANDED: 120
   getInitialState: ->
@@ -919,8 +940,10 @@ OpakeProfile = React.createClass
           PublicKeyField publicKey: this.props.userKeys.publicKey
           SecretKeyField secretKey: this.props.userKeys.secretKey
 
+OpakeProfile = React.createFactory OpakeProfileClass
 
-PublicKeyField = React.createClass
+
+PublicKeyFieldClass = React.createClass
   getInitialState: () -> shown: false
 
   componentDidMount: () ->
@@ -972,8 +995,10 @@ PublicKeyField = React.createClass
             onClick: this.onTweet,
             i className: 'fa fa-twitter fa-lg'
 
+PublicKeyField = React.createFactory PublicKeyFieldClass
 
-SecretKeyField = React.createClass
+
+SecretKeyFieldClass = React.createClass
   getInitialState: () -> shown: false
 
   onShow: (event) ->
@@ -1013,8 +1038,10 @@ SecretKeyField = React.createClass
             onClick: this.onShow,
             if this.state.shown then 'Hide' else 'Show'
 
+SecretKeyField = React.createFactory SecretKeyFieldClass
 
-RemoteMessaging = React.createClass
+
+RemoteMessagingClass = React.createClass
   getInitialState: () -> userData: null
 
   setUserData: (userData) -> this.setState userData: {}
@@ -1030,8 +1057,10 @@ RemoteMessaging = React.createClass
         button className: 'btn btn-success', onClick: this.login,
         "Sign in with opake ID"
 
+RemoteMessaging = React.createFactory RemoteMessagingClass
 
-GeneratePrivateKey = React.createClass
+
+GeneratePrivateKeyClass = React.createClass
   getInitialState: ->
     email: ''
     password: ''
@@ -1084,8 +1113,10 @@ GeneratePrivateKey = React.createClass
             div className: 'col-md-12 ',
               button deriveButtonProps, 'Derive your opake ID'
 
+GeneratePrivateKey = React.createFactory GeneratePrivateKeyClass
 
-VerifyPassword = React.createClass
+
+VerifyPasswordClass = React.createClass
   getInitialState: () -> verifyPassword: ''
 
   componentDidUpdate: () -> this.props.onUpdate this.validPassword
@@ -1142,8 +1173,10 @@ VerifyPassword = React.createClass
         div className: 'col-md-12 large-bottom',
           p className: messageClass, message
 
+VerifyPassword = React.createFactory VerifyPasswordClass
 
-InputField = React.createClass
+
+InputFieldClass = React.createClass
   onChange: (event) -> this.props.onChange? event.target.value
 
   render: ->
@@ -1162,8 +1195,10 @@ InputField = React.createClass
         label className: 'control-label', this.props.label
         input inputProps
 
+InputField = React.createFactory InputFieldClass
 
-Tipjar = React.createClass
+
+TipjarClass = React.createClass
   render: ->
     div null,
       div className: 'row large-bottom',
@@ -1185,9 +1220,11 @@ Tipjar = React.createClass
           support further development as well as fund a comprehensive
           code audit.'
 
+Tipjar = React.createFactory TipjarClass
+
 
 $ () ->
   $('#loader').hide()
-  React.renderComponent DisturbeApp(), document.getElementById('app')
+  React.render DisturbeApp(), document.getElementById('app')
 
 `});`  # end the require.js callback that wraps everything
